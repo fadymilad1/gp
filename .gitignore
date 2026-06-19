@@ -1,0 +1,90 @@
+#############################
+# Root Git Ignore for Medify
+#############################
+
+####################
+# OS / User Folders
+####################
+*.log
+*.tmp
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Windows user profile noise (do NOT track your whole user folder)
+/AppData/
+/Contacts/
+/Documents/
+/Downloads/
+/Favorites/
+/Links/
+/Music/
+/Pictures/
+/Saved Games/
+/Searches/
+/Videos/
+/OneDrive/
+/NTUSER.DAT*
+/ntuser.dat*
+
+####################
+# IDE / Tooling
+####################
+.vscode/
+.idea/
+.cursor/
+.cache/
+.npm/
+.yarn/
+
+####################
+# Environment / Secrets
+####################
+.env
+.env.local
+.env*.local
+*.pem
+
+####################
+# Node / Next.js (frontend)
+####################
+node_modules/
+.pnp
+.pnp.js
+
+/frontend/.next/
+/frontend/out/
+/frontend/coverage/
+/frontend/build/
+/frontend/dist/
+/frontend/.vercel
+/frontend/*.tsbuildinfo
+/frontend/next-env.d.ts
+
+####################
+# Python / Django (backend)
+####################
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+
+/backend/env/
+/backend/venv/
+/backend/ENV/
+/backend/.venv/
+
+/backend/*.log
+/backend/local_settings.py
+/backend/db.sqlite3
+/backend/db.sqlite3-journal
+/backend/media/
+/backend/staticfiles/
+
+####################
+# Misc project files
+####################
+frontend/package-lock.json
+backend/collection.json

@@ -1,0 +1,413 @@
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { hospitalAdminApi } from '@/lib/hospitalAdminApi';
+import type { Appointment } from '@/types/hospital';
+import { FiPrinter, FiChevronDown, FiChevronRight, FiUser, FiCalendar } from 'react-icons/fi';
+
+type PatientWithAppointments = {
+  name: string;
+  email: string;
+  phone: string;
+  appointments: Appointment[];
+};
+
+type DoctorGroup = {
+  doctorId: string;
+  doctorName: string;
+  patients: PatientWithAppointments[];
+  totalAppointments: number;
+};
+
+export default function HospitalPatientsPage() {
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedDoctors, setExpandedDoctors] = useState<Set<string>>(new Set());
+  const [selectedDoctor, setSelectedDoctor] = useState<string>('all');
+
+  useEffect(() => {
+    const load = async () => {
+      const response = await hospitalAdminApi.listAppointments();
+      if (response.data) setAppointments(response.data);
+      setLoading(false);
+    };
+    void load();
+  }, []);
+
+  const doctorGroups = useMemo<DoctorGroup[]>(() => {
+    const doctorMap = new Map<string, Map<string, PatientWithAppointments>>();
+
+    for (const appointment of appointments) {
+      const doctorId = appointment.doctor;
+      const doctorName = appointment.doctor_name || 'Unknown Doctor';
+      const patientKey = `${appointment.patient_name}|${appointment.patient_email}|${appointment.patient_phone}`;
+
+      if (!doctorMap.has(doctorId)) {
+        doctorMap.set(doctorId, new Map());
+      }
+
+      const patientsMap = doctorMap.get(doctorId)!;
+      
+      if (!patientsMap.has(patientKey)) {
+        patientsMap.set(patientKey, {
+          name: appointment.patient_name,
+          email: appointment.patient_email,
+          phone: appointment.patient_phone,
+          appointments: [],
+        });
+      }
+
+      patientsMap.get(patientKey)!.appointments.push(appointment);
+    }
+
+    const groups: DoctorGroup[] = [];
+    for (const [doctorId, patientsMap] of doctorMap.entries()) {
+      const patients = [...patientsMap.values()];
+      const firstAppointment = patients[0]?.appointments[0];
+      
+      groups.push({
+        doctorId,
+        doctorName: firstAppointment?.doctor_name || 'Unknown Doctor',
+        patients: patients.sort((a, b) => a.name.localeCompare(b.name)),
+        totalAppointments: patients.reduce((sum, p) => sum + p.appointments.length, 0),
+      });
+    }
+
+    return groups.sort((a, b) => a.doctorName.localeCompare(b.doctorName));
+  }, [appointments]);
+
+  const filteredGroups = selectedDoctor === 'all' 
+    ? doctorGroups 
+    : doctorGroups.filter(g => g.doctorId === selectedDoctor);
+
+  const toggleDoctor = (doctorId: string) => {
+    setExpandedDoctors(prev => {
+      const next = new Set(prev);
+      if (next.has(doctorId)) {
+        next.delete(doctorId);
+      } else {
+        next.add(doctorId);
+      }
+      return next;
+    });
+  };
+
+  const handlePrint = (doctorId?: string) => {
+    const groupsToPrint = doctorId 
+      ? doctorGroups.filter(g => g.doctorId === doctorId)
+      : filteredGroups;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Patient List - ${doctorId ? groupsToPrint[0]?.doctorName : 'All Doctors'}</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              padding: 20px;
+              color: #333;
+            }
+            h1 { 
+              color: #1a1a1a; 
+              border-bottom: 3px solid #2563eb;
+              padding-bottom: 10px;
+              margin-bottom: 20px;
+            }
+            h2 { 
+              color: #2563eb; 
+              margin-top: 30px;
+              margin-bottom: 15px;
+              font-size: 18px;
+            }
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin-bottom: 30px;
+              background: white;
+            }
+            th { 
+              background-color: #f3f4f6; 
+              padding: 12px 8px; 
+              text-align: left; 
+              border: 1px solid #e5e7eb;
+              font-weight: 600;
+              color: #374151;
+              font-size: 13px;
+            }
+            td { 
+              padding: 10px 8px; 
+              border: 1px solid #e5e7eb;
+              font-size: 13px;
+              vertical-align: top;
+            }
+            tr:nth-child(even) {
+              background-color: #f9fafb;
+            }
+            .header-info {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 20px;
+              padding: 15px;
+              background: #f3f4f6;
+              border-radius: 8px;
+            }
+            .summary {
+              margin-bottom: 20px;
+              padding: 15px;
+              background: #eff6ff;
+              border-left: 4px solid #2563eb;
+            }
+            .appointment-list {
+              margin: 0;
+              padding: 0;
+              list-style: none;
+            }
+            .appointment-item {
+              padding: 4px 0;
+              font-size: 12px;
+            }
+            .appointment-date {
+              font-weight: 600;
+              color: #1f2937;
+            }
+            .appointment-time {
+              color: #6b7280;
+              margin-left: 8px;
+            }
+            .appointment-status {
+              display: inline-block;
+              padding: 2px 6px;
+              border-radius: 4px;
+              font-size: 11px;
+              font-weight: 600;
+              margin-left: 8px;
+            }
+            .status-pending { background: #fef3c7; color: #92400e; }
+            .status-confirmed { background: #d1fae5; color: #065f46; }
+            .status-cancelled { background: #fee2e2; color: #991b1b; }
+            @media print {
+              .no-print { display: none; }
+              body { padding: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Patient List for Nursing Team</h1>
+          <div class="header-info">
+            <div><strong>Generated:</strong> ${new Date().toLocaleString()}</div>
+            <div><strong>Total Doctors:</strong> ${groupsToPrint.length}</div>
+          </div>
+          
+          ${groupsToPrint.map(group => `
+            <div style="page-break-inside: avoid;">
+              <h2>Dr. ${group.doctorName}</h2>
+              <div class="summary">
+                <strong>Total Patients:</strong> ${group.patients.length} | 
+                <strong>Total Appointments:</strong> ${group.totalAppointments}
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th style="width: 5%;">#</th>
+                    <th style="width: 20%;">Patient Name</th>
+                    <th style="width: 15%;">Phone</th>
+                    <th style="width: 20%;">Email</th>
+                    <th style="width: 40%;">Appointment Dates</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${group.patients.map((patient, idx) => {
+                    const sortedAppointments = patient.appointments.sort((a, b) => 
+                      new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime()
+                    );
+                    
+                    return `
+                    <tr>
+                      <td>${idx + 1}</td>
+                      <td><strong>${patient.name}</strong></td>
+                      <td>${patient.phone}</td>
+                      <td style="font-size: 11px;">${patient.email}</td>
+                      <td>
+                        <ul class="appointment-list">
+                          ${sortedAppointments.map(appt => {
+                            const date = new Date(appt.start_datetime);
+                            const dateStr = date.toLocaleDateString('en-US', { 
+                              month: 'short', 
+                              day: 'numeric', 
+                              year: 'numeric' 
+                            });
+                            const timeStr = date.toLocaleTimeString('en-US', { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            });
+                            const statusClass = `status-${appt.status.toLowerCase()}`;
+                            const statusLabel = appt.status.charAt(0) + appt.status.slice(1).toLowerCase();
+                            
+                            return `
+                              <li class="appointment-item">
+                                <span class="appointment-date">${dateStr}</span>
+                                <span class="appointment-time">${timeStr}</span>
+                                <span class="appointment-status ${statusClass}">${statusLabel}</span>
+                              </li>
+                            `;
+                          }).join('')}
+                        </ul>
+                      </td>
+                    </tr>
+                  `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          `).join('')}
+          
+          <script>
+            window.onload = () => {
+              window.print();
+            };
+          </script>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-neutral-dark">Patients by Doctor</h1>
+          <p className="mt-1 text-neutral-gray">Patient records grouped by their treating physician.</p>
+        </div>
+        <Button
+          variant="primary"
+          onClick={() => handlePrint()}
+          disabled={loading || doctorGroups.length === 0}
+        >
+          <FiPrinter className="mr-2" />
+          Print All
+        </Button>
+      </div>
+
+      {/* Filter */}
+      <Card className="p-4">
+        <div className="flex items-center gap-4">
+          <label className="text-sm font-medium text-neutral-dark">Filter by Doctor:</label>
+          <select
+            value={selectedDoctor}
+            onChange={(e) => setSelectedDoctor(e.target.value)}
+            className="rounded-lg border border-neutral-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          >
+            <option value="all">All Doctors ({doctorGroups.length})</option>
+            {doctorGroups.map(group => (
+              <option key={group.doctorId} value={group.doctorId}>
+                {group.doctorName} ({group.patients.length} patients)
+              </option>
+            ))}
+          </select>
+        </div>
+      </Card>
+
+      {/* Doctor Groups */}
+      {loading ? (
+        <Card className="p-6">
+          <div className="text-sm text-neutral-gray">Loading patients...</div>
+        </Card>
+      ) : filteredGroups.length === 0 ? (
+        <Card className="p-6">
+          <div className="text-sm text-neutral-gray">No patients yet.</div>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {filteredGroups.map((group) => {
+            const isExpanded = expandedDoctors.has(group.doctorId);
+            
+            return (
+              <Card key={group.doctorId} className="overflow-hidden">
+                {/* Doctor Header */}
+                <div
+                  className="flex items-center justify-between bg-neutral-light p-4 cursor-pointer hover:bg-neutral-light/80 transition"
+                  onClick={() => toggleDoctor(group.doctorId)}
+                >
+                  <div className="flex items-center gap-3">
+                    <button className="text-neutral-gray">
+                      {isExpanded ? <FiChevronDown size={20} /> : <FiChevronRight size={20} />}
+                    </button>
+                    <div>
+                      <h3 className="font-bold text-neutral-dark flex items-center gap-2">
+                        <FiUser size={18} />
+                        Dr. {group.doctorName}
+                      </h3>
+                      <p className="text-sm text-neutral-gray mt-0.5">
+                        {group.patients.length} patient{group.patients.length !== 1 ? 's' : ''} • {group.totalAppointments} appointment{group.totalAppointments !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePrint(group.doctorId);
+                    }}
+                  >
+                    <FiPrinter className="mr-2" />
+                    Print
+                  </Button>
+                </div>
+
+                {/* Patient List */}
+                {isExpanded && (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-neutral-light/50">
+                        <tr className="text-left text-neutral-gray">
+                          <th className="px-4 py-3 font-medium">Patient Name</th>
+                          <th className="px-4 py-3 font-medium">Phone</th>
+                          <th className="px-4 py-3 font-medium">Email</th>
+                          <th className="px-4 py-3 font-medium text-center">Appointments</th>
+                          <th className="px-4 py-3 font-medium">Last Visit</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {group.patients.map((patient, idx) => {
+                          const lastAppointment = patient.appointments.sort((a, b) => 
+                            new Date(b.start_datetime).getTime() - new Date(a.start_datetime).getTime()
+                          )[0];
+                          
+                          return (
+                            <tr key={idx} className="border-t border-neutral-border hover:bg-neutral-light/30">
+                              <td className="px-4 py-3 font-semibold text-neutral-dark">{patient.name}</td>
+                              <td className="px-4 py-3 text-neutral-gray">{patient.phone}</td>
+                              <td className="px-4 py-3 text-neutral-gray">{patient.email}</td>
+                              <td className="px-4 py-3 text-center">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                                  <FiCalendar size={12} />
+                                  {patient.appointments.length}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 text-neutral-gray">
+                                {new Date(lastAppointment.start_datetime).toLocaleString()}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}

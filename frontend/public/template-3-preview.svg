@@ -1,0 +1,38 @@
+<svg width="1200" height="700" viewBox="0 0 1200 700" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="1200" y2="700" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7F9FC"/>
+      <stop offset="1" stop-color="#EEF3FB"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="700" fill="url(#bg3)"/>
+  <rect x="58" y="50" width="1084" height="68" rx="22" fill="white" stroke="#DCE3EC"/>
+  <rect x="88" y="72" width="176" height="24" rx="12" fill="#1A1A1A"/>
+  <rect x="812" y="72" width="300" height="22" rx="11" fill="#EEF2F7"/>
+
+  <rect x="72" y="144" width="1056" height="508" rx="32" fill="white" stroke="#DCE3EC"/>
+
+  <rect x="114" y="186" width="972" height="126" rx="22" fill="#F2F5FA" stroke="#DCE3EC"/>
+  <rect x="146" y="224" width="238" height="14" rx="7" fill="#AAB8C9"/>
+  <rect x="146" y="252" width="560" height="16" rx="8" fill="#C2CEDD"/>
+  <rect x="934" y="220" width="120" height="50" rx="16" fill="#1A1A1A"/>
+
+  <rect x="114" y="332" width="308" height="286" rx="24" fill="#F8FAFD" stroke="#DCE3EC"/>
+  <rect x="146" y="366" width="246" height="130" rx="18" fill="#E8EEF7"/>
+  <rect x="146" y="516" width="168" height="14" rx="7" fill="#AEBBCA"/>
+  <rect x="146" y="542" width="124" height="14" rx="7" fill="#C2CEDC"/>
+
+  <rect x="446" y="332" width="308" height="286" rx="24" fill="#F8FAFD" stroke="#DCE3EC"/>
+  <rect x="478" y="366" width="246" height="130" rx="18" fill="#E8EEF7"/>
+  <rect x="478" y="516" width="168" height="14" rx="7" fill="#AEBBCA"/>
+  <rect x="478" y="542" width="124" height="14" rx="7" fill="#C2CEDC"/>
+
+  <rect x="778" y="332" width="308" height="286" rx="24" fill="#F8FAFD" stroke="#DCE3EC"/>
+  <rect x="810" y="366" width="246" height="130" rx="18" fill="#E8EEF7"/>
+  <rect x="810" y="516" width="168" height="14" rx="7" fill="#AEBBCA"/>
+  <rect x="810" y="542" width="124" height="14" rx="7" fill="#C2CEDC"/>
+
+  <text x="95" y="98" fill="white" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="700" letter-spacing="2">MINIMAL PHARMACY</text>
+  <text x="118" y="166" fill="#71849A" font-family="Inter, Arial, sans-serif" font-size="12" font-weight="700" letter-spacing="1.8">TEMPLATE 3 PREVIEW</text>
+</svg>

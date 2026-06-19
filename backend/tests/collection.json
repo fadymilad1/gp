@@ -1,0 +1,244 @@
+{
+  "info": {
+    "name": "Medify Backend (Django + PostgreSQL)",
+    "_postman_id": "c5c6f9b0-0000-0000-0000-medifybackend",
+    "description": "Collection to test Medify Django backend with PostgreSQL.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth - Signup (Hospital)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"hospital1@example.com\",\n  \"password\": \"Testpass123\",\n  \"password_confirm\": \"Testpass123\",\n  \"name\": \"Hospital Owner\",\n  \"business_type\": \"hospital\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8000/api/auth/signup/",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "auth", "signup", ""]
+        }
+      }
+    },
+    {
+      "name": "Auth - Signup (Pharmacy)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"pharmacy1@example.com\",\n  \"password\": \"Testpass123\",\n  \"password_confirm\": \"Testpass123\",\n  \"name\": \"Pharmacy Owner\",\n  \"business_type\": \"pharmacy\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8000/api/auth/signup/",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "auth", "signup", ""]
+        }
+      }
+    },
+    {
+      "name": "Auth - Login (success)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"hospital1@example.com\",\n  \"password\": \"Testpass123\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8000/api/auth/login/",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "auth", "login", ""]
+        }
+      }
+    },
+    {
+      "name": "Auth - Login (should fail for unknown user)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"unknown@example.com\",\n  \"password\": \"WrongPass123\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8000/api/auth/login/",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "auth", "login", ""]
+        }
+      }
+    },
+    {
+      "name": "Auth - Me (get current user)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8000/api/auth/me/",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "auth", "me", ""]
+        }
+      }
+    },
+    {
+      "name": "Website Setup - Get",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8000/api/website-setups/",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "website-setups", ""]
+        }
+      }
+    },
+    {
+      "name": "Website Setup - Update Features (Hospital)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"review_system\": true,\n  \"ai_chatbot\": true,\n  \"ambulance_ordering\": false,\n  \"patient_portal\": true,\n  \"prescription_refill\": false,\n  \"total_price\": 87.00\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8000/api/website-setups/",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "website-setups", ""]
+        }
+      }
+    },
+    {
+      "name": "Business Info - Create / Update",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"City Hospital\",\n  \"about\": \"Modern hospital with multiple departments.\",\n  \"address\": \"123 Medical Street, City, Country\",\n  \"contact_phone\": \"+1 555-123-4567\",\n  \"contact_email\": \"contact@cityhospital.com\",\n  \"website\": \"https://cityhospital.com\",\n  \"working_hours\": {\n    \"monday\": {\"open\": \"09:00\", \"close\": \"17:00\", \"closed\": false},\n    \"tuesday\": {\"open\": \"09:00\", \"close\": \"17:00\", \"closed\": false},\n    \"wednesday\": {\"open\": \"09:00\", \"close\": \"17:00\", \"closed\": false},\n    \"thursday\": {\"open\": \"09:00\", \"close\": \"17:00\", \"closed\": false},\n    \"friday\": {\"open\": \"09:00\", \"close\": \"17:00\", \"closed\": false},\n    \"saturday\": {\"open\": \"09:00\", \"close\": \"13:00\", \"closed\": false},\n    \"sunday\": {\"open\": \"\", \"close\": \"\", \"closed\": true}\n  },\n  \"is_published\": false\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8000/api/business-info/",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "business-info", ""]
+        }
+      }
+    },
+    {
+      "name": "Business Info - Get",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8000/api/business-info/",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "business-info", ""]
+        }
+      }
+    },
+    {
+      "name": "Business Info - Publish",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{access_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8000/api/business-info/publish/",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "business-info", "publish", ""]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "access_token",
+      "value": ""
+    }
+  ]
+}
