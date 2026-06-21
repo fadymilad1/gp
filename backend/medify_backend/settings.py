@@ -262,3 +262,11 @@ GOOGLE_SERVICE_ACCOUNT_JSON = config('GOOGLE_SERVICE_ACCOUNT_JSON', default='')
 AXES_FAILURE_LIMIT = 5
 AXES_COOLOFF_TIME = 5
 AXES_LOCKOUT_CALLABLE = "axes.lockout.lockout"
+
+# Third-party integrations
+GOOGLE_OAUTH2_CLIENT_ID = config('GOOGLE_OAUTH2_CLIENT_ID', default='')
+STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='')
+STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='')
+FAWRY_MERCHANT_CODE = config('FAWRY_MERCHANT_CODE', default='')
+FAWRY_SECURE_KEY = config('FAWRY_SECURE_KEY', default='')
+FAWRY_API_URL = config('FAWRY_API_URL', default='https://atfawry.com/fawry/charging-api/api/v1/charge')
