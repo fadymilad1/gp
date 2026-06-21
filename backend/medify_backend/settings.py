@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'hospitals.apps.HospitalsConfig',
     'pharmacies.apps.PharmaciesConfig',
     'rag_model',
+    'axes',
 ]
 
 MIDDLEWARE = [
@@ -61,6 +62,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'axes.middleware.AxesMiddleware',
 ]
 
 ROOT_URLCONF = 'medify_backend.urls'
@@ -182,8 +184,8 @@ REST_FRAMEWORK = {
 
 # JWT Settings
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
@@ -255,3 +257,8 @@ CHATBOT_STREAM_CHUNK_SIZE = config('CHATBOT_STREAM_CHUNK_SIZE', default=28, cast
 # Google Sheets API (bidirectional product sync — share each sheet with the service account email as Editor)
 GOOGLE_SERVICE_ACCOUNT_FILE = config('GOOGLE_SERVICE_ACCOUNT_FILE', default='')
 GOOGLE_SERVICE_ACCOUNT_JSON = config('GOOGLE_SERVICE_ACCOUNT_JSON', default='')
+
+# axes rate limiting
+AXES_FAILURE_LIMIT = 5
+AXES_COOLOFF_TIME = 5
+AXES_LOCKOUT_CALLABLE = "axes.lockout.lockout"
