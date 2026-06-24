@@ -156,42 +156,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ userType, isOpen = true, onClo
     { label: 'Dashboard', icon: <FiHome />, href: dashboardHref },
     ...(currentUserType === 'hospital'
       ? [
-          { label: 'My Website', icon: <FiGlobe />, href: '/dashboard/business-info' },
-          { label: 'Hospital Setup', icon: <FiLayout />, href: '/dashboard/hospital/setup' },
-          { label: 'Departments', icon: <FiLayers />, href: '/dashboard/hospital/departments' },
-          { label: 'Customization', icon: <FiLayout />, href: '/dashboard/hospital/customization' },
-          { label: 'Doctors', icon: <FiLayout />, href: '/dashboard/hospital/doctors' },
-          { label: 'Appointments', icon: <FiShoppingCart />, href: '/dashboard/hospital/appointments' },
-          { label: 'Patients', icon: <FiInfo />, href: '/dashboard/hospital/patients' },
-          { label: 'Queue Management', icon: <FiPackage />, href: '/dashboard/hospital/queue' },
-          { label: 'Notifications', icon: <FiMessageSquare />, href: '/dashboard/hospital/notifications' }, 
-          { label: 'Settings', icon: <FiSettings />, href: '/dashboard/hospital/settings' },
-        ]
+        { label: 'My Website', icon: <FiGlobe />, href: '/dashboard/business-info' },
+        { label: 'Hospital Setup', icon: <FiLayout />, href: '/dashboard/hospital/setup' },
+        { label: 'Customization', icon: <FiLayout />, href: '/dashboard/hospital/customization' },
+        { label: 'Departments', icon: <FiLayers />, href: '/dashboard/hospital/departments' },
+        { label: 'Doctors', icon: <FiLayout />, href: '/dashboard/hospital/doctors' },
+        { label: 'Appointments', icon: <FiShoppingCart />, href: '/dashboard/hospital/appointments' },
+        { label: 'Patients', icon: <FiInfo />, href: '/dashboard/hospital/patients' },
+        { label: 'Queue Management', icon: <FiPackage />, href: '/dashboard/hospital/queue' },
+        { label: 'Notifications', icon: <FiMessageSquare />, href: '/dashboard/hospital/notifications' },
+        { label: 'AI Assistant', icon: <FiMessageSquare />, href: '/dashboard/hospital/ai-assistant' },
+      ]
       : []),
     ...(currentUserType === 'pharmacy'
       ? [
-          { label: 'Create Website', icon: <FiLayout />, href: '/dashboard/pharmacy/setup' },
-          { label: 'Products', icon: <FiPackage />, href: '/dashboard/pharmacy/products' },
-          { label: 'Templates', icon: <FiLayout />, href: '/dashboard/pharmacy/templates' },
-        ]
+        { label: 'Create Website', icon: <FiLayout />, href: '/dashboard/pharmacy/setup' },
+        { label: 'Templates', icon: <FiLayout />, href: '/dashboard/pharmacy/templates' },
+        { label: 'Business Info', icon: <FiInfo />, href: '/dashboard/business-info' },
+        { label: 'Products', icon: <FiPackage />, href: '/dashboard/pharmacy/products' },
+        { label: 'Orders', icon: <FiShoppingCart />, href: '/dashboard/orders' },
+        { label: 'AI Assistant', icon: <FiMessageSquare />, href: '/dashboard/pharmacy/ai-assistant' },
+        { label: 'Settings', icon: <FiSettings />, href: '/dashboard/settings' },
+      ]
       : []),
-    ...(currentUserType === 'pharmacy'
-      ? [{ label: 'Business Info', icon: <FiInfo />, href: '/dashboard/business-info' }]
-      : []),
-    ...(currentUserType === 'pharmacy'
-      ? [
-          {
-            label: 'Orders',
-            icon: <FiShoppingCart />,
-            href: '/dashboard/orders',
-          },
-        ]
-      : []),
-    // AI Assistant only for pharmacy; hospitals have chatbot on their public site
-    ...(currentUserType === 'pharmacy'
-      ? [{ label: 'AI Assistant', icon: <FiMessageSquare />, href: '/dashboard/ai-assistant' }]
-      : []),
-    ...(currentUserType === 'pharmacy' ? [{ label: 'Settings', icon: <FiSettings />, href: '/dashboard/settings' }] : []),
   ]
 
   const typeLabel = currentUserType === 'pharmacy' ? 'Pharmacy' : 'Hospital'
@@ -217,14 +204,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ userType, isOpen = true, onClo
     <>
       {/* Mobile overlay */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
           onClick={onClose}
         />
       )}
-      <div className={`w-64 bg-white border-r border-neutral-border h-screen fixed left-0 top-0 flex flex-col z-50 transform transition-transform duration-300 ease-in-out ${
-        isOpen ? 'translate-x-0' : '-translate-x-full'
-      } md:translate-x-0`}>
+      <div className={`w-64 bg-white border-r border-neutral-border h-screen fixed left-0 top-0 flex flex-col z-50 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'
+        } md:translate-x-0`}>
         <div className="p-4 sm:p-6 border-b border-neutral-border flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 sm:gap-3" onClick={onClose}>
             <div className="h-12 w-12 sm:h-14 sm:w-14 flex-shrink-0 rounded-full overflow-hidden border border-primary/20 bg-white">
@@ -249,49 +235,48 @@ export const Sidebar: React.FC<SidebarProps> = ({ userType, isOpen = true, onClo
             <FiX size={24} />
           </button>
         </div>
-      <nav className="flex-1 p-4 overflow-y-auto">
-        {menuItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={() => {
-              if (item.href === '/dashboard/orders') {
-                setUnseenOrdersCount(0)
-                window.dispatchEvent(
-                  new CustomEvent('pharmacy-unseen-orders-count', {
-                    detail: { count: 0 },
-                  }),
-                )
-              }
-              onClose?.()
-            }}
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition-colors ${
-              isActive(item.href)
+        <nav className="flex-1 p-4 overflow-y-auto">
+          {menuItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => {
+                if (item.href === '/dashboard/orders') {
+                  setUnseenOrdersCount(0)
+                  window.dispatchEvent(
+                    new CustomEvent('pharmacy-unseen-orders-count', {
+                      detail: { count: 0 },
+                    }),
+                  )
+                }
+                onClose?.()
+              }}
+              className={`flex items-center gap-3 px-4 py-3 rounded-lg mb-2 transition-colors ${isActive(item.href)
                 ? 'bg-primary-light text-primary font-medium'
                 : 'text-neutral-gray hover:bg-neutral-light'
-            }`}
+                }`}
+            >
+              {item.icon}
+              <span className="text-sm sm:text-base">{item.label}</span>
+              {item.href === '/dashboard/orders' && currentUserType === 'pharmacy' && unseenOrdersCount > 0 ? (
+                <span className="ml-auto inline-flex min-w-[20px] h-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-white">
+                  {unseenOrdersCount > 99 ? '99+' : unseenOrdersCount}
+                </span>
+              ) : null}
+            </Link>
+          ))}
+        </nav>
+        <div className="p-4 border-t border-neutral-border">
+          <button
+            onClick={handleLogout}
+            disabled={isLoggingOut}
+            className="flex items-center gap-3 px-4 py-3 rounded-lg text-error hover:bg-neutral-light w-full transition-colors text-sm sm:text-base"
           >
-            {item.icon}
-            <span className="text-sm sm:text-base">{item.label}</span>
-            {item.href === '/dashboard/orders' && currentUserType === 'pharmacy' && unseenOrdersCount > 0 ? (
-              <span className="ml-auto inline-flex min-w-[20px] h-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-white">
-                {unseenOrdersCount > 99 ? '99+' : unseenOrdersCount}
-              </span>
-            ) : null}
-          </Link>
-        ))}
-      </nav>
-      <div className="p-4 border-t border-neutral-border">
-        <button 
-          onClick={handleLogout}
-          disabled={isLoggingOut}
-          className="flex items-center gap-3 px-4 py-3 rounded-lg text-error hover:bg-neutral-light w-full transition-colors text-sm sm:text-base"
-        >
-          <FiLogOut />
-          <span>{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
-        </button>
+            <FiLogOut />
+            <span>{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
+          </button>
+        </div>
       </div>
-    </div>
     </>
   )
 }

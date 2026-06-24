@@ -5,6 +5,8 @@ from .models import HospitalProfile, Department, Doctor, DoctorSchedule, Appoint
 class HospitalProfileSerializer(serializers.ModelSerializer):
     subdomain = serializers.SerializerMethodField()
     business_info = serializers.SerializerMethodField()
+    patients_treated = serializers.SerializerMethodField()
+    allowed_features = serializers.SerializerMethodField()
 
     def get_subdomain(self, obj):
         return obj.website_setup.subdomain if obj.website_setup else None
@@ -18,9 +20,23 @@ class HospitalProfileSerializer(serializers.ModelSerializer):
                 'contact_email': bi.contact_email or '',
                 'address': bi.address or '',
                 'working_hours': bi.working_hours or {},
+                'years_of_experience': bi.years_of_experience,
             }
         except Exception:
             return {}
+
+    def get_patients_treated(self, obj):
+        from hospitals.models import Appointment
+        count = Appointment.objects.filter(website_setup=obj.website_setup).count()
+        return str(count)
+
+    def get_allowed_features(self, obj):
+        """Return the list of allowed features based on the website setup's subscription."""
+        if not obj.website_setup:
+            return []
+        from core.services.subscription import get_allowed_features
+        access = get_allowed_features(obj.website_setup)
+        return access.allowed_features
 
     class Meta:
         model = HospitalProfile
@@ -29,6 +45,11 @@ class HospitalProfileSerializer(serializers.ModelSerializer):
 
 
 class DepartmentSerializer(serializers.ModelSerializer):
+    doctor_count = serializers.SerializerMethodField()
+
+    def get_doctor_count(self, obj):
+        return obj.doctors.filter(is_active=True).count()
+
     class Meta:
         model = Department
         fields = '__all__'
@@ -104,7 +125,7 @@ class HospitalPhotoSerializer(serializers.ModelSerializer):
             'id', 'image', 'image_url', 'alt_text', 'caption', 
             'display_order', 'is_active', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'is_active', 'created_at', 'updated_at']
 
     def to_representation(self, instance):
         """Customize the representation to include full image URLs."""

@@ -18,7 +18,7 @@ SUBSCRIPTION_PENDING = 'PENDING'
 
 PLAN_TYPE_CHOICES = (
     (PLAN_TYPE_BASIC, 'Basic'),
-    (PLAN_TYPE_STANDARD, 'Standard'),
+    (PLAN_TYPE_STANDARD, 'Premium'),
     (PLAN_TYPE_AI, 'AI'),
     (PLAN_TYPE_PREMIUM, 'Premium'),
 )
@@ -34,13 +34,12 @@ SUBSCRIPTION_STATUS_CHOICES = (
 ONE_TIME_FEATURES: Set[str] = {
     'ambulance_ordering',
     'custom_theme',
-    'branding_setup',
 }
 
 PLAN_FEATURES = {
-    PLAN_TYPE_BASIC: {'review_system'},
+    PLAN_TYPE_BASIC: set(),
     PLAN_TYPE_STANDARD: {'review_system', 'ai_chatbot', 'patient_portal', 'prescription_refill'},
-    PLAN_TYPE_AI: {'review_system', 'ai_chatbot'},
+    PLAN_TYPE_AI: {'ai_chatbot'},
     PLAN_TYPE_PREMIUM: {
         'review_system',
         'ai_chatbot',
@@ -48,7 +47,6 @@ PLAN_FEATURES = {
         'prescription_refill',
         'ambulance_ordering',
         'custom_theme',
-        'branding_setup',
     },
 }
 
@@ -76,9 +74,9 @@ THEME_FEATURE_KEYS = {
         'inputBorderColor',
         'inputFocusColor',
         'borderRadius',
+        'emergencyNumber',
     },
     'ai_chatbot': {'chatbotName', 'chatbotColor'},
-    'branding_setup': {'emergencyNumber'},
 }
 
 

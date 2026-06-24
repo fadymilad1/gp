@@ -20,14 +20,10 @@ import { SubscriptionProvider, useSubscription } from '@/contexts/SubscriptionCo
 
 type FeatureState = {
   plan: 'basic' | 'standard'
-  customTheme: boolean
-  brandingSetup: boolean
 }
 
 const DEFAULT_FORM_STATE: FeatureState = {
   plan: 'basic',
-  customTheme: false,
-  brandingSetup: false,
 }
 
 const PLANS = [
@@ -40,6 +36,7 @@ const PLANS = [
     features: [
       'Hospital website',
       'Doctors & departments',
+      'Patient Portal',
       'Review system',
       'Basic contact forms',
       'Appointment system',
@@ -48,34 +45,19 @@ const PLANS = [
   {
     key: 'standard' as const,
     backendKey: 'STANDARD' as PlanType,
-    label: 'Standard Plan',
+    label: 'Premium Plan',
     setupPrice: 0,
     monthlyPrice: 29,
     features: [
       'Everything in Basic',
-      'Patient Portal',
       'Medical Q&A chatbot',
-      'Prescription refill (included)',
+      'Custom UI Theme',
+      'Branding Setup',
     ],
   },
 ]
 
-const ADD_ONS = [
-  {
-    key: 'customTheme' as const,
-    label: 'Custom UI Theme',
-    description: 'Apply a custom UI theme to match your brand',
-    price: 29,
-    planFeature: 'custom_theme',
-  },
-  {
-    key: 'brandingSetup' as const,
-    label: 'Branding Setup',
-    description: 'Full branding setup across your hospital website',
-    price: 49,
-    planFeature: 'branding_setup',
-  },
-]
+const ADD_ONS: any[] = []
 
 const resolvePlanKey = (payload: {
   _plan?: string
@@ -94,11 +76,11 @@ const resolvePlanKey = (payload: {
 const buildStoredFeatures = (state: FeatureState) => ({
   _plan: state.plan,
   reviewSystem: true,
+  patientPortal: true,
   aiChatbot: state.plan === 'standard',
-  patientPortal: state.plan === 'standard',
-  prescriptionRefill: state.plan === 'standard',
-  customTheme: state.customTheme,
-  brandingSetup: state.brandingSetup,
+  customTheme: state.plan === 'standard',
+  brandingSetup: state.plan === 'standard',
+  prescriptionRefill: false,
 })
 
 // ── Inner component ──────────────────────────────────────────────────────────
@@ -185,8 +167,6 @@ function HospitalSetupContent() {
           const parsed = JSON.parse(storedRaw) as Partial<FeatureState>
           storedFeatures = {
             plan: parsed.plan === 'standard' || parsed.plan === 'basic' ? parsed.plan : 'basic',
-            customTheme: Boolean(parsed.customTheme),
-            brandingSetup: Boolean(parsed.brandingSetup),
           }
           storedPlanHints = {
             plan: parsed.plan,
@@ -211,8 +191,6 @@ function HospitalSetupContent() {
 
       const resolvedState: FeatureState = {
         plan,
-        customTheme: storedFeatures?.customTheme ?? false,
-        brandingSetup: storedFeatures?.brandingSetup ?? false,
       }
 
       if (backendFeatures) {
@@ -226,13 +204,7 @@ function HospitalSetupContent() {
   }, [])
 
   const planPricing = useMemo(() => PLANS.find((p) => p.key === formData.plan), [formData.plan])
-  const monthlyTotal = planPricing?.monthlyPrice ?? 0
-  const oneTimeTotal = useMemo(() => {
-    let total = 0
-    ADD_ONS.forEach((f) => { if (formData[f.key]) total += f.price })
-    return total
-  }, [formData])
-  const totalPrice = monthlyTotal + oneTimeTotal
+  const totalPrice = planPricing?.monthlyPrice ?? 0
 
   useEffect(() => {
     if (!isHydrated) return
@@ -244,9 +216,9 @@ function HospitalSetupContent() {
         if (!token) return
         await websiteSetupApiV2.update({
           review_system: true,
+          patient_portal: true,
           ai_chatbot: formData.plan === 'standard',
-          patient_portal: formData.plan === 'standard',
-          prescription_refill: formData.plan === 'standard',
+          prescription_refill: false,
           total_price: totalPrice,
         })
       } catch (error) {
@@ -273,11 +245,6 @@ function HospitalSetupContent() {
     setScopedItem('selectedFeatures', JSON.stringify(buildStoredFeatures(formData)))
     setScopedItem('totalPrice', totalPrice.toString())
 
-    // Build the list of purchased one-time feature keys
-    const purchasedOneTimeFeatures = ADD_ONS
-      .filter((addon) => formData[addon.key])
-      .map((addon) => addon.planFeature)
-
     // Activate subscription on backend
     setActivating(true)
     const selectedPlan = PLANS.find((p) => p.key === formData.plan)
@@ -288,8 +255,6 @@ function HospitalSetupContent() {
         plan_type: selectedPlan.backendKey,
         subscription_status: 'ACTIVE',
         subscription_ends_at: endsAt.toISOString(),
-        // ✅ Pass purchased add-ons so backend stores them in one_time_features
-        ...(purchasedOneTimeFeatures.length > 0 && { one_time_features: purchasedOneTimeFeatures }),
       })
       if (result.error) {
         setSubscriptionError(result.error)
@@ -366,8 +331,7 @@ function HospitalSetupContent() {
               <div className="flex items-center gap-2 bg-primary-light px-4 py-2 rounded-lg">
                 <FiDollarSign className="text-primary" size={20} />
                 <div className="text-right">
-                  <p className="text-lg font-bold text-primary">${monthlyTotal}/mo</p>
-                  <p className="text-xs text-neutral-gray">${oneTimeTotal} one-time add-ons</p>
+                  <p className="text-lg font-bold text-primary">${totalPrice}/mo</p>
                 </div>
               </div>
             </div>
@@ -412,32 +376,6 @@ function HospitalSetupContent() {
                   </button>
                 )
               })}
-            </div>
-          </Card>
-
-          {/* One-time Features Section */}
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-neutral-dark">One-time Features</h2>
-              <p className="text-sm text-neutral-gray">Add optional one-time upgrades.</p>
-            </div>
-            <div className="space-y-4">
-              {ADD_ONS.map((feature) => (
-                <div key={feature.key} className="flex items-center justify-between p-4 border border-neutral-border rounded-lg">
-                  <div className="flex-1">
-                    <Toggle
-                      label={feature.label}
-                      checked={formData[feature.key]}
-                      onChange={(checked) => setFormData({ ...formData, [feature.key]: checked })}
-                      description={feature.description}
-                    />
-                  </div>
-                  <div className="ml-4 text-right">
-                    <p className="text-lg font-semibold text-neutral-dark">${feature.price}</p>
-                    <p className="text-xs text-neutral-gray">one-time</p>
-                  </div>
-                </div>
-              ))}
             </div>
           </Card>
 

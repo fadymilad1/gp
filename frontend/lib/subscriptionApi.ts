@@ -15,7 +15,7 @@ export interface SubscriptionState {
 /** Human-readable labels for each plan */
 export const PLAN_LABELS: Record<PlanType, string> = {
   BASIC: 'Basic',
-  STANDARD: 'Standard',
+  STANDARD: 'Premium',
   AI: 'AI',
   PREMIUM: 'Premium',
 }
@@ -35,7 +35,6 @@ export const ALL_FEATURES = [
   'patient_portal',
   'prescription_refill',
   'custom_theme',
-  'branding_setup',
 ] as const
 
 export type FeatureKey = (typeof ALL_FEATURES)[number]
@@ -47,7 +46,6 @@ export const FEATURE_LABELS: Record<FeatureKey, string> = {
   patient_portal: 'Patient Portal',
   prescription_refill: 'Prescription Refill',
   custom_theme: 'Custom Theme',
-  branding_setup: 'Branding Setup',
 }
 
 /**

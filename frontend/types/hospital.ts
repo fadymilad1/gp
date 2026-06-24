@@ -103,6 +103,8 @@ export interface HospitalProfile {
     timezone: string;
     years_of_excellence: number;
     patients_treated: string;
+    business_info?: any;
+    allowed_features?: string[];
     created_at: string;
     updated_at: string;
 }

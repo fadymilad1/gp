@@ -11,7 +11,7 @@ class BusinessInfoSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'logo', 'logo_url', 'about', 'address', 'latitude',
             'longitude', 'contact_phone', 'contact_email', 'website',
-            'working_hours', 'is_published', 'created_at', 'updated_at'
+            'years_of_experience', 'working_hours', 'is_published', 'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
@@ -35,6 +35,6 @@ class BusinessInfoCreateUpdateSerializer(serializers.ModelSerializer):
         model = BusinessInfo
         fields = [
             'name', 'logo', 'about', 'address', 'latitude', 'longitude',
-            'contact_phone', 'contact_email', 'website', 'working_hours',
+            'contact_phone', 'contact_email', 'website', 'years_of_experience', 'working_hours',
             'is_published'
         ]

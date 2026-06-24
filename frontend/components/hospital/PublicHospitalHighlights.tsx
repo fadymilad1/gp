@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { FiCheckCircle, FiHeart, FiShield, FiStar } from 'react-icons/fi';
 import { getHospitalDepartments, getHospitalDoctors } from '@/lib/hospitalApi';
+import TestimonialsCarousel from './TestimonialsCarousel';
 
 interface PublicHospitalHighlightsProps {
   subdomain: string;
@@ -27,6 +28,27 @@ const testimonials = [
     name: 'Sarah Mitchell',
     role: 'Patient since 2020',
     rating: 4,
+  },
+  {
+    quote:
+      'The pediatric department is wonderful. They made my daughter feel extremely safe and comfortable during her minor surgery. Highly recommended!',
+    name: 'Marcus Thompson',
+    role: 'Parent of patient',
+    rating: 5,
+  },
+  {
+    quote:
+      'Outstanding cardiovascular care. The rehabilitation program helped me regain my active lifestyle much faster than I ever anticipated.',
+    name: 'Robert Vance',
+    role: 'Patient since 2023',
+    rating: 5,
+  },
+  {
+    quote:
+      'Extremely clean facility with a welcoming atmosphere. The online patient portal makes downloading records and messaging my physician so convenient.',
+    name: 'Emily Watson',
+    role: 'Patient since 2019',
+    rating: 5,
   },
 ];
 
@@ -69,13 +91,15 @@ export default async function PublicHospitalHighlights({
     
     // Fetch hospital profile for statistics
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-    const profileRes = await fetch(`${API_URL}/hospital/public/${subdomain}/profile/`, {
+    const profileRes = await fetch(`${API_URL}/hospital/public/profile/?subdomain=${encodeURIComponent(subdomain)}`, {
       cache: 'no-store',
     });
     
     if (profileRes.ok) {
       const profile = await profileRes.json();
-      yearsOfExcellence = profile.years_of_excellence?.toString() || '25';
+      yearsOfExcellence = profile.business_info?.years_of_experience !== undefined && profile.business_info?.years_of_experience !== null
+        ? profile.business_info.years_of_experience.toString()
+        : profile.years_of_excellence?.toString() || '25';
       patientsTreated = profile.patients_treated || '50k+';
     }
   } catch {
@@ -257,70 +281,7 @@ export default async function PublicHospitalHighlights({
           </div>
 
           {/* Testimonial Cards */}
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
-            {testimonials.map((item) => (
-              <div
-                key={item.name}
-                className="flex flex-col gap-4 p-7 shadow-sm transition-shadow duration-300 hover:shadow-md"
-                style={{
-                  backgroundColor: 'var(--hospital-surface)',
-                  border: '1px solid var(--hospital-border)',
-                  borderRadius: 'var(--hospital-radius)',
-                }}
-              >
-                {/* Star Rating */}
-                <div className="flex items-center gap-0.5">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <FiStar
-                      key={i}
-                      size={15}
-                      className={i < item.rating ? 'fill-amber-400 text-amber-400' : ''}
-                      style={
-                        i >= item.rating
-                          ? { color: 'var(--hospital-border)', fill: 'var(--hospital-border)' }
-                          : undefined
-                      }
-                    />
-                  ))}
-                </div>
-
-                {/* Quote */}
-                <p
-                  className="flex-1 text-sm leading-relaxed"
-                  style={{ color: 'var(--hospital-text-muted)' }}
-                >
-                  &ldquo;{item.quote}&rdquo;
-                </p>
-
-                {/* Author */}
-                <div className="flex items-center gap-3 pt-2"
-                  style={{ borderTop: '1px solid var(--hospital-border)' }}
-                >
-                  {/* Avatar placeholder */}
-                  <div
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
-                    style={{ backgroundColor: 'var(--hospital-btn-primary)' }}
-                  >
-                    {item.name.charAt(0)}
-                  </div>
-                  <div>
-                    <p
-                      className="text-sm font-semibold"
-                      style={{ color: 'var(--hospital-text)' }}
-                    >
-                      {item.name}
-                    </p>
-                    <p
-                      className="text-xs"
-                      style={{ color: 'var(--hospital-text-muted)' }}
-                    >
-                      {item.role}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <TestimonialsCarousel testimonials={testimonials} />
         </div>
       </section>
 

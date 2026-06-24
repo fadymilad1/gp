@@ -303,12 +303,14 @@ export default async function HospitalLayout({ children, params }: LayoutProps) 
                 </footer>
             </div>
 
-            <HospitalChatWidget 
-                subdomain={resolvedParams.subdomain} 
-                hospitalName={chatbotName} 
-                hospitalPhone={emergencyNumber}
-                whatsAppNumber={businessInfo?.contact_phone}
-            />
+            {profile?.allowed_features?.includes('ai_chatbot') && (
+                <HospitalChatWidget 
+                    subdomain={resolvedParams.subdomain} 
+                    hospitalName={chatbotName} 
+                    hospitalPhone={emergencyNumber}
+                    whatsAppNumber={businessInfo?.contact_phone}
+                />
+            )}
         </>
     );
 }

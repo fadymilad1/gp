@@ -212,8 +212,9 @@ export const hospitalAdminApi = {
       cache: 'no-store',
     });
     
-    const existing = response.ok ? await response.json() : [];
-    const existingMap = new Map(existing.map((s: any) => [s.day_of_week, s]));
+    const payload = response.ok ? await response.json() : null;
+    const existing = normalizeList<any>(payload);
+    const existingMap = new Map<number, any>(existing.map((s: any) => [s.day_of_week, s]));
     
     // For each day, create or update schedule
     const requests: Promise<Response>[] = [];
@@ -278,8 +279,9 @@ export const hospitalAdminApi = {
       headers: hdrs,
       cache: 'no-store',
     });
-    const existing = response.ok ? await response.json() : [];
-    const existingMap = new Map(existing.map((s: any) => [s.day_of_week, s]));
+    const payload = response.ok ? await response.json() : null;
+    const existing = normalizeList<any>(payload);
+    const existingMap = new Map<number, any>(existing.map((s: any) => [s.day_of_week, s]));
     const requests: Promise<Response>[] = [];
 
     const desiredDaySet = new Set(schedules.map(s => s.day_of_week));
@@ -335,11 +337,8 @@ export const hospitalAdminApi = {
       cache: 'no-store',
     });
     
-    let existing = [];
-    if (response.ok) {
-      const data = await response.json();
-      existing = Array.isArray(data) ? data : [];
-    }
+    const payload = response.ok ? await response.json() : null;
+    const existing = normalizeList<any>(payload);
     
     // Delete all existing schedules first
     const deleteRequests = existing.map((s: any) =>

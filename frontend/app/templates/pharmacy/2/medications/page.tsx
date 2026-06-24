@@ -226,15 +226,35 @@ function Template2MedicationsContent() {
     })
   }
 
-  const brand = useMemo(() => {
-    if (isDemo) return { name: 'Classic Pharmacy', logo: '/mod logo.png', phone: '+1 (555) 234-5678', address: '45 Health Avenue, City' }
-    const businessInfo = safeJsonParse<BusinessInfo>(getSiteItem('businessInfo'))
-    const setup = safeJsonParse<PharmacySetup>(getSiteItem('pharmacySetup'))
-    return {
-      name: businessInfo?.name?.trim() || '',
-      logo: businessInfo?.logo || null,
-      phone: businessInfo?.contactPhone || setup?.phone || '',
-      address: businessInfo?.address || setup?.address || '',
+  const [brand, setBrand] = useState<{
+    name: string
+    logo: string | null
+    phone: string
+    address: string
+  }>({
+    name: '',
+    logo: null,
+    phone: '',
+    address: '',
+  })
+
+  useEffect(() => {
+    if (isDemo) {
+      setBrand({
+        name: 'Classic Pharmacy',
+        logo: '/mod logo.png',
+        phone: '+1 (555) 234-5678',
+        address: '45 Health Avenue, City',
+      })
+    } else {
+      const businessInfo = safeJsonParse<BusinessInfo>(getSiteItem('businessInfo'))
+      const setup = safeJsonParse<PharmacySetup>(getSiteItem('pharmacySetup'))
+      setBrand({
+        name: businessInfo?.name?.trim() || '',
+        logo: businessInfo?.logo || null,
+        phone: businessInfo?.contactPhone || setup?.phone || '',
+        address: businessInfo?.address || setup?.address || '',
+      })
     }
   }, [isDemo])
 

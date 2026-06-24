@@ -15,6 +15,7 @@ export interface HospitalBusinessInfo {
     contact_email: string;
     address: string;
     working_hours: Record<string, { open: string; close: string; closed: boolean }>;
+    years_of_experience?: number | null;
 }
 
 interface ApiResponse<T> {

@@ -21,6 +21,7 @@ class BusinessInfo(models.Model):
     contact_phone = models.CharField(max_length=20, blank=True)
     contact_email = models.EmailField(blank=True)
     website = models.URLField(blank=True)
+    years_of_experience = models.IntegerField(default=0, null=True, blank=True, help_text="Years of business experience")
     working_hours = models.JSONField(
         default=dict,
         help_text="Store working hours as JSON: {monday: {open, close, closed}, ...}"

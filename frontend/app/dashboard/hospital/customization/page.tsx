@@ -3,8 +3,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react'
 import {
   FiSave,
-  FiUpload,
-  FiImage,
   FiSettings,
   FiLayout,
   FiMessageSquare,
@@ -750,11 +748,73 @@ function CustomizationContent() {
 
   const [showPreview, setShowPreview] = useState(true)
 
+  // Trial chatbot preview states
+  const [previewMessages, setPreviewMessages] = useState<Array<{ id: number; type: 'ai' | 'user'; content: string }>>([])
+  const [previewInput, setPreviewInput] = useState('')
+  const [previewTyping, setPreviewTyping] = useState(false)
+
+  useEffect(() => {
+    setPreviewMessages([
+      {
+        id: 1,
+        type: 'ai',
+        content: `Hello! I'm ${theme.chatbotName || 'Hospital Medical AI'}. I'm here to help patients with questions about our medical services, appointments, or specialties. How can I assist you today?`,
+      },
+    ])
+  }, [theme.chatbotName])
+
+  const handleSendPreview = () => {
+    if (!previewInput.trim() || previewTyping) return
+
+    const userMsg = {
+      id: Date.now(),
+      type: 'user' as const,
+      content: previewInput.trim(),
+    }
+
+    setPreviewMessages((prev) => [...prev, userMsg])
+    const messageText = previewInput.trim()
+    setPreviewInput('')
+    setPreviewTyping(true)
+
+    setTimeout(() => {
+      let aiContent = 'Thank you for your question. I can help you with information about appointments, departments, and finding the right specialist for your needs.'
+      const lowerMessage = messageText.toLowerCase()
+
+      if (lowerMessage.includes('pain') || lowerMessage.includes('hurt') || lowerMessage.includes('ache')) {
+        if (lowerMessage.includes('chest') || lowerMessage.includes('heart')) {
+          aiContent = 'Based on your chest pain symptoms, I recommend seeing a Cardiologist immediately. They specialize in heart and cardiovascular conditions. Would you like me to help you schedule an appointment?'
+        } else if (lowerMessage.includes('head') || lowerMessage.includes('migraine')) {
+          aiContent = 'For headaches and migraines, I suggest consulting with a Neurologist. They can properly diagnose and treat various types of headaches. Shall I check available appointments?'
+        } else if (lowerMessage.includes('stomach') || lowerMessage.includes('abdomen')) {
+          aiContent = 'Stomach pain could require a Gastroenterologist consultation. They specialize in digestive system issues. Would you like to book an appointment?'
+        }
+      } else if (lowerMessage.includes('skin') || lowerMessage.includes('rash') || lowerMessage.includes('acne')) {
+        aiContent = 'For skin concerns, I recommend seeing a Dermatologist. They can help with various skin conditions. Would you like me to check their availability?'
+      } else if (lowerMessage.includes('eye') || lowerMessage.includes('vision')) {
+        aiContent = 'For eye or vision problems, an Ophthalmologist would be the right specialist to see. They can examine and treat eye conditions. Shall I help you schedule?'
+      } else if (lowerMessage.includes('appointment') || lowerMessage.includes('book') || lowerMessage.includes('schedule')) {
+        aiContent = 'I can help you book an appointment! We have specialists in Cardiology, Neurology, Gastroenterology, Dermatology, and Ophthalmology. Which department do you need?'
+      } else if (lowerMessage.includes('hours') || lowerMessage.includes('open') || lowerMessage.includes('time')) {
+        aiContent = 'Our hospital is open 24/7 for emergency care. Regular outpatient department clinics operate Monday through Saturday from 9:00 AM to 8:00 PM.'
+      }
+
+      setPreviewMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          type: 'ai' as const,
+          content: aiContent,
+        },
+      ])
+      setPreviewTyping(false)
+    }, 1000)
+  }
+
   const { hasFeature, planType, isActive, loading: subLoading } = useSubscription()
 
   const canCustomTheme = hasFeature('custom_theme')
   const canChatbot = hasFeature('ai_chatbot')
-  const canBranding = hasFeature('branding_setup')
 
   useEffect(() => {
     loadProfile()
@@ -903,7 +963,6 @@ function CustomizationContent() {
             {[
               { key: 'custom_theme', label: 'Custom Theme', ok: canCustomTheme },
               { key: 'ai_chatbot', label: 'AI Chatbot', ok: canChatbot },
-              { key: 'branding_setup', label: 'Branding', ok: canBranding },
             ].map(({ key, label, ok }) => (
               <span
                 key={key}
@@ -919,7 +978,7 @@ function CustomizationContent() {
       )}
 
       {/* ── Two-column layout: editor + preview ── */}
-      <div className={`flex gap-6 items-start ${showPreview ? 'flex-col xl:flex-row' : ''}`}>
+      <div className={`flex gap-6 items-start ${showPreview ? 'flex-col lg:flex-row' : ''}`}>
         {/* Editor column */}
         <div className="flex-1 min-w-0 space-y-4">
 
@@ -964,67 +1023,7 @@ function CustomizationContent() {
             </div>
           </LockedFeature>
 
-          {/* ── BRAND & LOGO ── */}
-          <div className="rounded-xl border border-neutral-border bg-white p-5 shadow-sm">
-            <SectionHeader
-              icon={<FiImage size={16} />}
-              title="Brand & Logo"
-              subtitle="Upload your hospital logo and emergency contact"
-              expanded={expandedSections.brand}
-              onToggle={() => toggleSection('brand')}
-            />
-            {expandedSections.brand && (
-              <div className="mt-5 flex flex-wrap items-start gap-6">
-                {/* Logo upload */}
-                <div className="flex flex-col items-center gap-3">
-                  <div
-                    className="relative group flex h-28 w-28 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-neutral-border bg-neutral-light cursor-pointer hover:border-primary transition-colors"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    {logoPreview ? (
-                      <img src={logoPreview} alt="Logo" className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="text-neutral-gray text-center text-xs p-3">
-                        <FiUpload className="mx-auto mb-1" size={20} />
-                        No logo
-                      </div>
-                    )}
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <FiUpload className="text-white" size={20} />
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="text-xs font-medium text-primary hover:text-primary-dark transition-colors"
-                  >
-                    Change Logo
-                  </button>
-                  <input type="file" ref={fileInputRef} onChange={handleLogoChange} accept="image/*" className="hidden" />
-                </div>
 
-                {/* Emergency number */}
-                <div className="flex-1 min-w-[180px]">
-                  <LockedFeature locked={!canBranding} featureName="Branding Setup">
-                    <div>
-                      <label className="block text-xs font-semibold text-neutral-gray uppercase tracking-wide mb-1.5">
-                        Emergency Hotline Number
-                      </label>
-                      <input
-                        type="text"
-                        value={theme.emergencyNumber}
-                        onChange={(e) => handleThemeChange('emergencyNumber', e.target.value)}
-                        placeholder="e.g. 911 or 1-800-MEDIFY"
-                        className="w-full rounded-lg border border-neutral-border px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={!canBranding}
-                      />
-                      <p className="mt-1 text-xs text-neutral-gray">Shown in header and footer of your public site</p>
-                    </div>
-                  </LockedFeature>
-                </div>
-              </div>
-            )}
-          </div>
 
           {/* ── TYPOGRAPHY ── */}
           <LockedFeature locked={!canCustomTheme} featureName="Custom UI Theme">
@@ -1432,6 +1431,79 @@ function CustomizationContent() {
                     disabled={!canChatbot}
                     hint="Color of the chatbot bubble and header"
                   />
+                  <div className="sm:col-span-2 border-t border-neutral-border pt-5 mt-2">
+                    <label className="block text-xs font-semibold text-neutral-gray uppercase tracking-wide mb-1.5">
+                      Try the AI Chatbot
+                    </label>
+                    <p className="text-xs text-neutral-gray mb-3 -mt-1">
+                      Test how the chatbot behaves using the display name and accent color configured above.
+                    </p>
+                    <div className="rounded-xl border border-neutral-border bg-neutral-light/50 overflow-hidden shadow-inner">
+                      {/* Chat header */}
+                      <div
+                        className="px-4 py-3 flex items-center justify-between text-white text-xs font-semibold"
+                        style={{ backgroundColor: theme.chatbotColor || '#2563eb' }}
+                      >
+                        <span>{theme.chatbotName || 'Hospital Medical AI'}</span>
+                        <span className="bg-white/20 px-2 py-0.5 rounded text-[10px]">Test Mode</span>
+                      </div>
+                      
+                      {/* Messages list */}
+                      <div className="h-64 p-4 overflow-y-auto space-y-3 bg-white text-xs">
+                        {previewMessages.map((msg) => (
+                          <div
+                            key={msg.id}
+                            className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                          >
+                            <div
+                              className={`max-w-[80%] rounded-2xl px-4 py-2.5 ${
+                                msg.type === 'user'
+                                  ? 'text-white shadow-sm'
+                                  : 'bg-neutral-light border border-neutral-border text-neutral-dark'
+                              }`}
+                              style={msg.type === 'user' ? { backgroundColor: theme.chatbotColor || '#2563eb' } : {}}
+                            >
+                              <p className="leading-relaxed whitespace-pre-line">{msg.content}</p>
+                            </div>
+                          </div>
+                        ))}
+                        {previewTyping && (
+                          <div className="flex justify-start">
+                            <div className="bg-neutral-light border border-neutral-border rounded-xl px-4 py-2.5 text-neutral-gray flex items-center gap-1.5">
+                              <span className="h-1.5 w-1.5 rounded-full bg-neutral-gray animate-bounce" style={{ animationDelay: '0ms' }} />
+                              <span className="h-1.5 w-1.5 rounded-full bg-neutral-gray animate-bounce" style={{ animationDelay: '150ms' }} />
+                              <span className="h-1.5 w-1.5 rounded-full bg-neutral-gray animate-bounce" style={{ animationDelay: '300ms' }} />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Input area */}
+                      <div className="p-3 border-t border-neutral-border bg-white flex gap-2">
+                        <input
+                          type="text"
+                          value={previewInput}
+                          onChange={(e) => setPreviewInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              handleSendPreview()
+                            }
+                          }}
+                          placeholder="Ask a medical question (e.g. 'I have chest pain')..."
+                          className="flex-1 rounded-lg border border-neutral-border px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSendPreview}
+                          className="px-4 py-2 rounded-lg text-white text-xs font-semibold transition-colors shrink-0"
+                          style={{ backgroundColor: theme.chatbotColor || '#2563eb' }}
+                        >
+                          Send
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -1455,20 +1527,18 @@ function CustomizationContent() {
 
         {/* ── Live Preview column ── */}
         {showPreview && (
-          <div className="xl:w-80 xl:shrink-0 space-y-3">
-            <div className="sticky top-6">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <p className="text-sm font-semibold text-neutral-dark">Live Preview</p>
-                  <p className="text-xs text-neutral-gray">Updates as you change settings</p>
-                </div>
-                <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          <div className="lg:w-80 lg:shrink-0 space-y-3 lg:sticky lg:top-20 lg:z-10 self-start h-fit">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-sm font-semibold text-neutral-dark">Live Preview</p>
+                <p className="text-xs text-neutral-gray">Updates as you change settings</p>
               </div>
-              <ThemePreview theme={theme} hospitalName={hospitalName} />
-              <p className="mt-2 text-center text-xs text-neutral-gray">
-                Simplified preview — actual site may vary slightly
-              </p>
+              <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
             </div>
+            <ThemePreview theme={theme} hospitalName={hospitalName} />
+            <p className="mt-2 text-center text-xs text-neutral-gray">
+              Simplified preview — actual site may vary slightly
+            </p>
           </div>
         )}
       </div>

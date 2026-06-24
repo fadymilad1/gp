@@ -95,6 +95,7 @@ export default function BusinessInfoPage() {
     contactPhone: '',
     contactEmail: '',
     website: '',
+    yearsOfExperience: '',
   })
 
 
@@ -135,6 +136,7 @@ export default function BusinessInfoPage() {
               contactPhone: data.contact_phone || prev.contactPhone,
               contactEmail: data.contact_email || prev.contactEmail,
               website: data.website || prev.website,
+              yearsOfExperience: data.years_of_experience !== undefined && data.years_of_experience !== null ? String(data.years_of_experience) : '',
               workingHours: {
                 ...prev.workingHours,
                 ...(data.working_hours || {}),
@@ -167,6 +169,7 @@ export default function BusinessInfoPage() {
             contactPhone: parsed.contactPhone || prev.contactPhone,
             contactEmail: parsed.contactEmail || prev.contactEmail,
             website: parsed.website || prev.website,
+            yearsOfExperience: parsed.yearsOfExperience || '',
             // Never restore logo from localStorage - it's too large
             logo: null,
             workingHours: {
@@ -223,6 +226,9 @@ export default function BusinessInfoPage() {
     formDataToSend.append('address', formData.address)
     formDataToSend.append('contact_phone', formData.contactPhone)
     formDataToSend.append('contact_email', formData.contactEmail)
+    if (formData.yearsOfExperience !== '') {
+      formDataToSend.append('years_of_experience', String(parseInt(formData.yearsOfExperience) || 0))
+    }
     // Only send website if non-empty to avoid Django URLField validation error
     const websiteValue = toBackendWebsite(formData.website)
     if (websiteValue) {
@@ -289,6 +295,7 @@ export default function BusinessInfoPage() {
         contactPhone: formData.contactPhone,
         contactEmail: formData.contactEmail,
         website: formData.website,
+        yearsOfExperience: formData.yearsOfExperience,
         ...(latestLogoUrl ? { logo: latestLogoUrl } : {}),
       }
       setScopedItem('businessInfo', JSON.stringify(snapshot))
@@ -338,6 +345,7 @@ export default function BusinessInfoPage() {
         contactPhone: formData.contactPhone,
         contactEmail: formData.contactEmail,
         website: formData.website,
+        yearsOfExperience: formData.yearsOfExperience,
         ...(latestLogoUrl ? { logo: latestLogoUrl } : {}),
       }
       setScopedItem('businessInfo', JSON.stringify(businessInfoSnapshot))
@@ -507,6 +515,15 @@ export default function BusinessInfoPage() {
                   </div>
                 </div>
               )}
+              {userType === 'hospital' && (
+                <Input
+                  label="Years of Experience"
+                  type="number"
+                  placeholder="e.g. 5"
+                  value={formData.yearsOfExperience}
+                  onChange={(e) => setFormData({ ...formData, yearsOfExperience: e.target.value })}
+                />
+              )}
               <Textarea
                 label="About"
                 placeholder="Tell us about your business..."
@@ -630,12 +647,6 @@ export default function BusinessInfoPage() {
                 value={formData.contactEmail}
                 onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
               />
-                <Input
-                  label="External Website (Optional)"
-                  placeholder="https://www.myhospital.com"
-                  value={formData.website}
-                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                />
             </div>
           </Card>
 

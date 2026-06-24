@@ -684,7 +684,7 @@ export default function PharmacyProductsPage() {
             label="Stock"
             value={form.stock}
             error={formErrors.stock}
-            onChange={(event) => setForm((prev) => ({ ...prev, stock: event.target.value }))}
+            onChange={(event) => setForm((prev) => ({ ...prev, stock: event.target.value.replace(/\D/g, '') }))}
             placeholder="25"
             inputMode="numeric"
           />

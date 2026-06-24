@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FiChevronDown } from "react-icons/fi";
-import { getHospitalDoctors, getHospitalDepartments } from "@/lib/hospitalApi";
+import { getHospitalDoctors, getHospitalDepartments, hospitalApi } from "@/lib/hospitalApi";
+import HeroBackgroundSlideshow from "./HeroBackgroundSlideshow";
 
 interface HeroBlockSettings {
   headline?: string;
@@ -32,52 +33,41 @@ export default async function HeroBlock({ settings, subdomain }: HeroBlockProps)
 
   let doctorsCount = 0;
   let departmentsCount = 0;
-
+  let yearsOfExperience = 0;
+  let photos: any[] = [];
   try {
-    const [doctors, departments] = await Promise.all([
+    const [doctors, departments, photosRes] = await Promise.all([
       getHospitalDoctors(subdomain),
       getHospitalDepartments(subdomain),
+      hospitalApi.getPhotos(subdomain),
     ]);
     doctorsCount = Array.isArray(doctors) ? doctors.length : 0;
     departmentsCount = Array.isArray(departments) ? departments.length : 0;
+    photos = photosRes.data || [];
+
+    // Fetch hospital profile for statistics
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+    const profileRes = await fetch(`${API_URL}/hospital/public/profile/?subdomain=${encodeURIComponent(subdomain)}`, {
+      cache: 'no-store',
+    });
+    
+    if (profileRes.ok) {
+      const profile = await profileRes.json();
+      yearsOfExperience = profile.business_info?.years_of_experience || profile.years_of_excellence || 25;
+    }
   } catch {
-    // Silently fall back to 0 counts
+    // Silently fall back to default/0 values
   }
 
-  const hasStats = doctorsCount > 0 || departmentsCount > 0;
+  const hasStats = doctorsCount > 0 || departmentsCount > 0 || yearsOfExperience > 0;
 
   return (
     <section
       className="relative w-full min-h-[92vh] flex flex-col justify-center overflow-hidden"
       style={{ background: "var(--hospital-bg)" }}
     >
-      {/* Background Image */}
-      {background_image_url && (
-        <div
-          className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url(${background_image_url})` }}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* Gradient Overlay */}
-      <div
-        className="absolute inset-0 z-10"
-        style={{
-          background:
-            "linear-gradient(to right, color-mix(in srgb, var(--hospital-btn-primary) 90%, transparent), color-mix(in srgb, var(--hospital-btn-primary) 60%, transparent), color-mix(in srgb, var(--hospital-btn-primary) 30%, transparent))",
-        }}
-        aria-hidden="true"
-      />
-
-      {/* Fallback solid overlay when no image */}
-      {!background_image_url && (
-        <div
-          className="absolute inset-0 z-0"
-          style={{ background: "var(--hospital-btn-primary)" }}
-          aria-hidden="true"
-        />
-      )}
+      {/* Dynamic Slideshow Background */}
+      <HeroBackgroundSlideshow photos={photos} fallbackImage={background_image_url} />
 
       {/* Animated Floating Shapes */}
       <div className="absolute inset-0 z-20 pointer-events-none overflow-hidden" aria-hidden="true">
@@ -244,30 +234,20 @@ export default async function HeroBlock({ settings, subdomain }: HeroBlockProps)
                 {departmentsCount} Departments
               </span>
             )}
-            <span
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold"
-              style={{
-                background: "rgba(255,255,255,0.15)",
-                color: "#ffffff",
-                border: "1px solid rgba(255,255,255,0.25)",
-                backdropFilter: "blur(8px)",
-              }}
-            >
-              <span className="text-base">📅</span>
-              Since 2000
-            </span>
-            <span
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold"
-              style={{
-                background: "rgba(255,255,255,0.15)",
-                color: "#ffffff",
-                border: "1px solid rgba(255,255,255,0.25)",
-                backdropFilter: "blur(8px)",
-              }}
-            >
-              <span className="text-base">⏰</span>
-              24/7 Care
-            </span>
+            {yearsOfExperience > 0 && (
+              <span
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold"
+                style={{
+                  background: "rgba(255,255,255,0.15)",
+                  color: "#ffffff",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  backdropFilter: "blur(8px)",
+                }}
+              >
+                <span className="text-base">📅</span>
+                {yearsOfExperience} Years of Experience
+              </span>
+            )}
           </div>
         )}
       </div>

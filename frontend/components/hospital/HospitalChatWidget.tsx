@@ -360,9 +360,8 @@ export default function HospitalChatWidget({
         >
           <FiMessageSquare size={24} />
           <span
-            className={`absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${
-              enabled ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'
-            }`}
+            className={`absolute -top-1 -right-1 w-4 h-4 rounded-full border-2 border-white ${enabled ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'
+              }`}
           />
           <span className="absolute bottom-full right-0 mb-2 px-3 py-1 bg-slate-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
             {enabled ? 'Medical AI assistant' : 'Chatbot unavailable'}
@@ -374,9 +373,8 @@ export default function HospitalChatWidget({
 
   return (
     <div
-      className={`fixed bottom-6 right-6 w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 flex flex-col transition-all duration-300 ${
-        isMinimized ? 'h-16' : 'h-[600px]'
-      }`}
+      className={`fixed bottom-6 right-6 w-96 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 flex flex-col transition-all duration-300 ${isMinimized ? 'h-16' : 'h-[600px]'
+        }`}
     >
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-teal-500 text-white p-4 rounded-t-2xl flex items-center justify-between">
@@ -425,11 +423,10 @@ export default function HospitalChatWidget({
                 className={`flex ${chatMessage.type === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                    chatMessage.type === 'user'
+                  className={`max-w-[85%] rounded-2xl px-4 py-3 ${chatMessage.type === 'user'
                       ? 'bg-gradient-to-br from-blue-600 to-teal-500 text-white shadow-lg shadow-blue-500/15'
                       : 'bg-white/95 border border-slate-200 text-slate-800 shadow-sm backdrop-blur'
-                  }`}
+                    }`}
                 >
                   {/* Urgency badge */}
                   {chatMessage.type === 'ai' && chatMessage.assistant?.urgency ? (
@@ -586,7 +583,7 @@ export default function HospitalChatWidget({
                     formRef.current?.requestSubmit()
                   }
                 }}
-                placeholder="Describe symptoms, duration, severity, and anything that makes them better or worse"
+                placeholder="Describe symptoms, duration, severity, and anything"
                 rows={2}
                 className="flex-1 px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm leading-relaxed min-h-[44px] max-h-40 resize-y"
                 disabled={isTyping || !enabled || !hasTenantContext}

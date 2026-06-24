@@ -10,8 +10,10 @@ psycopg[binary]==3.3.3
 whitenoise==6.6.0
 huggingface_hub>=0.36.0
 faiss-cpu==1.14.2
+<<<<<<< HEAD
 sentence-transformers==3.0.1
 transformers==4.44.2
+>>>>>>> origin/my-updates
 torch>=2.9.0
 requests==2.32.3
 numpy>=1.26.4

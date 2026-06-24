@@ -11,7 +11,7 @@ class HospitalPhotoSerializer(serializers.ModelSerializer):
             'id', 'image', 'image_url', 'alt_text', 'caption', 
             'display_order', 'is_active', 'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'is_active', 'created_at', 'updated_at']
 
     def to_representation(self, instance):
         """Customize the representation to include full image URLs."""

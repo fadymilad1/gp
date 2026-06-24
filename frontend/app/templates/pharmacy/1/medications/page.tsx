@@ -361,17 +361,35 @@ function MedicationsPageContent() {
     return allProducts.filter((p) => (p.stock !== undefined ? p.stock > 0 : p.inStock !== false)).length
   }, [allProducts])
 
-  const brand = useMemo(() => {
+  const [brand, setBrand] = useState<{
+    name: string
+    logo: string | null
+    phone: string
+    address: string
+  }>({
+    name: '',
+    logo: null,
+    phone: '',
+    address: '',
+  })
+
+  useEffect(() => {
     if (isDemo) {
-      return { name: 'Modern Pharmacy', logo: '/mod logo.png', phone: '+1 (555) 123-4567', address: '123 Main Street, City' }
-    }
-    const businessInfo = safeJsonParse<BusinessInfo>(getSiteItem('businessInfo'))
-    const setup = safeJsonParse<PharmacySetup>(getSiteItem('pharmacySetup'))
-    return {
-      name: businessInfo?.name?.trim() || '',
-      logo: businessInfo?.logo || null,
-      phone: businessInfo?.contactPhone || setup?.phone || '',
-      address: businessInfo?.address || setup?.address || '',
+      setBrand({
+        name: 'Modern Pharmacy',
+        logo: '/mod logo.png',
+        phone: '+1 (555) 123-4567',
+        address: '123 Main Street, City',
+      })
+    } else {
+      const businessInfo = safeJsonParse<BusinessInfo>(getSiteItem('businessInfo'))
+      const setup = safeJsonParse<PharmacySetup>(getSiteItem('pharmacySetup'))
+      setBrand({
+        name: businessInfo?.name?.trim() || '',
+        logo: businessInfo?.logo || null,
+        phone: businessInfo?.contactPhone || setup?.phone || '',
+        address: businessInfo?.address || setup?.address || '',
+      })
     }
   }, [isDemo])
 
