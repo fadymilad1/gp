@@ -314,6 +314,8 @@ class BookingViewSet(viewsets.ViewSet):
         patient_name = request.data.get('patient_name')
         patient_email = request.data.get('patient_email')
         patient_phone = request.data.get('patient_phone')
+        patient_gender = request.data.get('patient_gender')
+        patient_age = request.data.get('patient_age')
 
         from django.core.exceptions import ValidationError
 
@@ -348,6 +350,8 @@ class BookingViewSet(viewsets.ViewSet):
                     patient_name=patient_name,
                     patient_email=patient_email,
                     patient_phone=patient_phone,
+                    patient_gender=patient_gender,
+                    patient_age=patient_age,
                     start_datetime=start_datetime,
                     end_datetime=end_datetime,
                     status=Appointment.Status.PENDING

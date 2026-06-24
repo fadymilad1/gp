@@ -177,6 +177,18 @@ export const hospitalAdminApi = {
     return parseJson<Appointment>(response);
   },
 
+  async deleteAppointment(id: string): Promise<ApiResponse<void>> {
+    const response = await fetch(`${API_BASE_URL}/hospital/admin/appointments/${id}/`, {
+      method: 'DELETE',
+      headers: authHeaders(),
+      cache: 'no-store',
+    });
+    if (response.status === 204) {
+      return { data: undefined, status: 204 };
+    }
+    return parseJson<void>(response);
+  },
+
   // ─── Schedules ─────────────────────────────────────────────────────────────
 
   /** Creates Mon–Fri 09:00–17:00 (30 min slots) for a newly created doctor */

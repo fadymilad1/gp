@@ -11,109 +11,12 @@ import { SubscriptionProvider, useSubscription } from '@/contexts/SubscriptionCo
 import { PublishGate } from '@/components/subscription/PublishGate';
 import { PLAN_LABELS, PLAN_BADGE_CLASSES } from '@/lib/subscriptionApi';
 import type { Appointment, AppointmentStatus, Department, Doctor, HospitalProfile } from '@/types/hospital';
-import { FiCheckCircle, FiXCircle, FiSearch } from 'react-icons/fi';
+import { FiCheckCircle, FiXCircle, FiSearch, FiTrash2 } from 'react-icons/fi';
+import { ConfirmModal } from '@/components/hospital/ConfirmModal';
 
 // ── Confirmation Modal ────────────────────────────────────────────────────────
 
-interface ConfirmModalProps {
-  open: boolean;
-  action: 'CONFIRMED' | 'CANCELLED' | null;
-  appointment: Appointment | null;
-  loading: boolean;
-  onConfirm: () => void;
-  onClose: () => void;
-}
-
-function ConfirmModal({ open, action, appointment, loading, onConfirm, onClose }: ConfirmModalProps) {
-  if (!open || !appointment || !action) return null;
-
-  const isConfirm = action === 'CONFIRMED';
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <div
-        className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl p-8 text-center animate-in fade-in zoom-in-95 duration-200"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-      >
-        {/* Icon */}
-        <div className={`mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full border ${
-          isConfirm
-            ? 'bg-emerald-50 border-emerald-200'
-            : 'bg-rose-50 border-rose-200'
-        }`}>
-          {isConfirm
-            ? <FiCheckCircle className="text-emerald-500" size={30} />
-            : <FiXCircle className="text-rose-500" size={30} />
-          }
-        </div>
-
-        {/* Title */}
-        <h2 className="text-xl font-bold text-neutral-dark mb-2">
-          {isConfirm ? 'Confirm Appointment?' : 'Cancel Appointment?'}
-        </h2>
-
-        {/* Detail card */}
-        <div className="mb-6 rounded-xl border border-neutral-border bg-neutral-50 px-4 py-3 text-left space-y-1.5">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-neutral-gray w-20 shrink-0">Patient</span>
-            <span className="font-semibold text-neutral-dark">{appointment.patient_name}</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-neutral-gray w-20 shrink-0">Doctor</span>
-            <span className="font-semibold text-neutral-dark">{appointment.doctor_name}</span>
-          </div>
-          {appointment.department_name && (
-            <div className="flex items-center gap-2 text-sm">
-              <span className="text-neutral-gray w-20 shrink-0">Dept.</span>
-              <span className="font-semibold text-neutral-dark">{appointment.department_name}</span>
-            </div>
-          )}
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-neutral-gray w-20 shrink-0">Time</span>
-            <span className="font-semibold text-neutral-dark">
-              {new Date(appointment.start_datetime).toLocaleString()}
-            </span>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            className="flex-1 rounded-xl border border-neutral-border px-4 py-2.5 text-sm font-semibold text-neutral-dark hover:bg-neutral-50 transition-colors disabled:opacity-50"
-          >
-            Go Back
-          </button>
-          <button
-            type="button"
-            onClick={onConfirm}
-            disabled={loading}
-            className={`flex-1 flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-colors disabled:opacity-50 ${
-              isConfirm
-                ? 'bg-emerald-500 hover:bg-emerald-600'
-                : 'bg-rose-500 hover:bg-rose-600'
-            }`}
-          >
-            {loading ? (
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            ) : isConfirm ? (
-              <><FiCheckCircle size={14} /> Yes, Confirm</>
-            ) : (
-              <><FiXCircle size={14} /> Yes, Cancel</>
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+// Removed ConfirmModal (extracted)
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 
@@ -136,7 +39,7 @@ function HospitalDashboardContent() {
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalAction, setModalAction] = useState<'CONFIRMED' | 'CANCELLED' | null>(null);
+  const [modalAction, setModalAction] = useState<'CONFIRMED' | 'CANCELLED' | 'DELETED' | null>(null);
   const [modalAppointment, setModalAppointment] = useState<Appointment | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -202,7 +105,7 @@ function HospitalDashboardContent() {
   }, [appointments, searchQuery]);
 
   // Open confirmation modal
-  const openModal = useCallback((appointment: Appointment, action: 'CONFIRMED' | 'CANCELLED') => {
+  const openModal = useCallback((appointment: Appointment, action: 'CONFIRMED' | 'CANCELLED' | 'DELETED') => {
     setModalAppointment(appointment);
     setModalAction(action);
     setModalOpen(true);
@@ -219,21 +122,37 @@ function HospitalDashboardContent() {
   const handleConfirmAction = useCallback(async () => {
     if (!modalAppointment || !modalAction) return;
     setActionLoading(true);
-    const res = await hospitalAdminApi.updateAppointmentStatus(modalAppointment.id, modalAction);
-    setActionLoading(false);
-    if (res.error) {
-      showToast({ type: 'error', title: 'Action failed', message: res.error });
+
+    if (modalAction === 'DELETED') {
+      const res = await hospitalAdminApi.deleteAppointment(modalAppointment.id);
+      setActionLoading(false);
+      if (res.error) {
+        showToast({ type: 'error', title: 'Action failed', message: res.error });
+      } else {
+        setAppointments((prev) => prev.filter((a) => a.id !== modalAppointment.id));
+        showToast({
+          type: 'success',
+          title: 'Appointment Deleted',
+          message: `${modalAppointment.patient_name}'s appointment has been deleted.`,
+        });
+        closeModal();
+      }
     } else {
-      // Optimistic update in local state
-      setAppointments((prev) =>
-        prev.map((a) => (a.id === modalAppointment.id ? { ...a, status: modalAction } : a)),
-      );
-      showToast({
-        type: 'success',
-        title: modalAction === 'CONFIRMED' ? 'Appointment Confirmed' : 'Appointment Cancelled',
-        message: `${modalAppointment.patient_name}'s appointment has been ${modalAction.toLowerCase()}.`,
-      });
-      closeModal();
+      const res = await hospitalAdminApi.updateAppointmentStatus(modalAppointment.id, modalAction);
+      setActionLoading(false);
+      if (res.error) {
+        showToast({ type: 'error', title: 'Action failed', message: res.error });
+      } else {
+        setAppointments((prev) =>
+          prev.map((a) => (a.id === modalAppointment.id ? { ...a, status: modalAction } : a)),
+        );
+        showToast({
+          type: 'success',
+          title: modalAction === 'CONFIRMED' ? 'Appointment Confirmed' : 'Appointment Cancelled',
+          message: `${modalAppointment.patient_name}'s appointment has been ${modalAction.toLowerCase()}.`,
+        });
+        closeModal();
+      }
     }
   }, [modalAppointment, modalAction, showToast, closeModal]);
 
@@ -404,9 +323,38 @@ function HospitalDashboardContent() {
                             <FiXCircle size={12} />
                             Cancel
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => openModal(appointment, 'DELETED')}
+                            className="p-1.5 ml-1 rounded-md text-neutral-gray hover:text-rose-500 hover:bg-rose-50 transition-colors flex items-center"
+                            title="Delete appointment"
+                          >
+                            <FiTrash2 size={16} />
+                          </button>
                         </div>
                       ) : (
-                        <span className="text-xs text-neutral-gray italic">No actions</span>
+                        <div className="flex items-center gap-2">
+                          <div className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium border ${
+                            appointment.status === 'CONFIRMED'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                              : 'bg-rose-50 text-rose-700 border-rose-200'
+                          }`}>
+                            {appointment.status === 'CONFIRMED' ? (
+                              <FiCheckCircle size={12} />
+                            ) : (
+                              <FiXCircle size={12} />
+                            )}
+                            Status Locked
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => openModal(appointment, 'DELETED')}
+                            className="p-1.5 rounded-md text-neutral-gray hover:text-rose-500 hover:bg-rose-50 transition-colors"
+                            title="Delete appointment"
+                          >
+                            <FiTrash2 size={16} />
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>

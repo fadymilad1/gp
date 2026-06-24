@@ -130,6 +130,8 @@ export async function createAppointment(data: {
     patient_name: string;
     patient_email: string;
     patient_phone: string;
+    patient_gender?: string;
+    patient_age?: number | string;
 }): Promise<Appointment | { error: string; status: number }> {
     const res = await fetch(`${API_BASE_URL}/hospital/booking/create_appointment/`, {
         method: 'POST',

@@ -82,6 +82,8 @@ export interface Appointment {
     patient_name: string;
     patient_email: string;
     patient_phone: string;
+    patient_gender?: string;
+    patient_age?: number;
     start_datetime: string;
     end_datetime: string;
     status: AppointmentStatus;

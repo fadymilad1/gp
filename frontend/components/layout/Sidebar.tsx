@@ -163,7 +163,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ userType, isOpen = true, onClo
         { label: 'Doctors', icon: <FiLayout />, href: '/dashboard/hospital/doctors' },
         { label: 'Appointments', icon: <FiShoppingCart />, href: '/dashboard/hospital/appointments' },
         { label: 'Patients', icon: <FiInfo />, href: '/dashboard/hospital/patients' },
-        { label: 'Queue Management', icon: <FiPackage />, href: '/dashboard/hospital/queue' },
         { label: 'Notifications', icon: <FiMessageSquare />, href: '/dashboard/hospital/notifications' },
         { label: 'AI Assistant', icon: <FiMessageSquare />, href: '/dashboard/hospital/ai-assistant' },
       ]

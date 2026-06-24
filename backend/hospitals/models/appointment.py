@@ -27,6 +27,8 @@ class Appointment(models.Model):
     patient_name = models.CharField(max_length=255)
     patient_email = models.EmailField()
     patient_phone = models.CharField(max_length=50)
+    patient_gender = models.CharField(max_length=20, blank=True, null=True)
+    patient_age = models.PositiveIntegerField(blank=True, null=True)
 
     start_datetime = models.DateTimeField()
     end_datetime = models.DateTimeField()

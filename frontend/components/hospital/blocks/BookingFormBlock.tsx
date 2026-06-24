@@ -356,6 +356,8 @@ export default function BookingFormBlock({ settings, subdomain }: BookingFormBlo
   const [patientName, setPatientName] = useState('');
   const [patientEmail, setPatientEmail] = useState('');
   const [patientPhone, setPatientPhone] = useState('');
+  const [patientGender, setPatientGender] = useState('');
+  const [patientAge, setPatientAge] = useState('');
 
   const [isLoadingDoctors, setIsLoadingDoctors] = useState(true);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
@@ -454,6 +456,8 @@ export default function BookingFormBlock({ settings, subdomain }: BookingFormBlo
         patient_name: patientName,
         patient_email: patientEmail,
         patient_phone: patientPhone,
+        patient_gender: patientGender || undefined,
+        patient_age: patientAge ? parseInt(patientAge, 10) : undefined,
       });
       if ('error' in result) {
         setErrorMsg(result.error);
@@ -519,6 +523,7 @@ export default function BookingFormBlock({ settings, subdomain }: BookingFormBlo
                   setIsSuccess(false); setStep(0); setSelectedDoctor(null);
                   setSelectedDate(''); setSelectedSlot(null);
                   setPatientName(''); setPatientEmail(''); setPatientPhone('');
+                  setPatientGender(''); setPatientAge('');
                 }}
                 className="w-full rounded-full py-3 text-sm font-semibold transition hover:opacity-90"
                 style={{ backgroundColor: 'var(--hospital-btn-primary)', color: 'var(--hospital-btn-primary-text)', borderRadius: 'var(--hospital-radius)' }}
@@ -807,6 +812,46 @@ export default function BookingFormBlock({ settings, subdomain }: BookingFormBlo
                         onChange={e => setPatientPhone(e.target.value)}
                         required
                         placeholder="+1 (555) 000-0000"
+                        className="w-full rounded-xl px-4 py-3 text-sm outline-none transition"
+                        style={{
+                          border: '1px solid var(--hospital-input-border)',
+                          backgroundColor: 'var(--hospital-input-bg)',
+                          color: 'var(--hospital-text)',
+                          borderRadius: 'var(--hospital-radius)',
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-semibold" style={{ color: 'var(--hospital-text)' }}>
+                        Gender
+                      </label>
+                      <select
+                        value={patientGender}
+                        onChange={e => setPatientGender(e.target.value)}
+                        className="w-full rounded-xl px-4 py-3 text-sm outline-none transition"
+                        style={{
+                          border: '1px solid var(--hospital-input-border)',
+                          backgroundColor: 'var(--hospital-input-bg)',
+                          color: 'var(--hospital-text)',
+                          borderRadius: 'var(--hospital-radius)',
+                        }}
+                      >
+                        <option value="">Select Gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-sm font-semibold" style={{ color: 'var(--hospital-text)' }}>
+                        Age
+                      </label>
+                      <input
+                        type="number"
+                        value={patientAge}
+                        onChange={e => setPatientAge(e.target.value)}
+                        placeholder="Years"
+                        min="0"
+                        max="120"
                         className="w-full rounded-xl px-4 py-3 text-sm outline-none transition"
                         style={{
                           border: '1px solid var(--hospital-input-border)',
