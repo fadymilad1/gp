@@ -12,7 +12,8 @@ import { FiHome, FiCheckCircle, FiAlertCircle } from 'react-icons/fi'
 function SignupForm() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const type = searchParams.get('type') || 'hospital'
+  const rawType = searchParams.get('type')
+  const type = (rawType === 'hospital' || rawType === 'pharmacy') ? rawType : 'hospital'
 
   const [formData, setFormData] = useState({
     name: '',

@@ -253,6 +253,16 @@ describe('HospitalGalleryBlock — lightbox', () => {
 })
 
 describe('HospitalGalleryBlock — API error handling', () => {
+  let consoleErrorSpy: jest.SpyInstance
+
+  beforeAll(() => {
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterAll(() => {
+    consoleErrorSpy.mockRestore()
+  })
+
   it('renders nothing when the API call throws', async () => {
     mockGetPhotos.mockRejectedValue(new Error('Network error'))
     const { container } = render(<HospitalGalleryBlock subdomain="test" />)
@@ -270,3 +280,4 @@ describe('HospitalGalleryBlock — API error handling', () => {
     })
   })
 })
+
