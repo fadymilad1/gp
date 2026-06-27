@@ -1,0 +1,41 @@
+<svg width="1200" height="700" viewBox="0 0 1200 700" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg1" x1="0" y1="0" x2="1200" y2="700" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#EFF6FF"/>
+      <stop offset="0.55" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#E8F2FF"/>
+    </linearGradient>
+    <linearGradient id="hero1" x1="100" y1="170" x2="760" y2="500" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1B76FF"/>
+      <stop offset="1" stop-color="#0C4EB7"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="700" fill="url(#bg1)"/>
+  <rect x="58" y="48" width="1084" height="70" rx="24" fill="white" stroke="#DDE7F5"/>
+  <rect x="88" y="70" width="164" height="24" rx="12" fill="#1B76FF"/>
+  <rect x="792" y="70" width="320" height="24" rx="12" fill="#EAF2FF"/>
+
+  <rect x="72" y="146" width="1056" height="504" rx="34" fill="white" stroke="#DDE7F5"/>
+
+  <rect x="112" y="184" width="680" height="284" rx="30" fill="url(#hero1)"/>
+  <rect x="146" y="224" width="210" height="18" rx="9" fill="#A8CAFF"/>
+  <rect x="146" y="258" width="466" height="44" rx="16" fill="#9EC2FB"/>
+  <rect x="146" y="318" width="320" height="18" rx="9" fill="#C8DEFF"/>
+  <rect x="146" y="360" width="176" height="44" rx="16" fill="white"/>
+
+  <rect x="820" y="184" width="270" height="284" rx="30" fill="#F5F9FF" stroke="#D6E3F7"/>
+  <rect x="850" y="218" width="210" height="16" rx="8" fill="#C3D9F6"/>
+  <rect x="850" y="250" width="210" height="16" rx="8" fill="#C3D9F6"/>
+  <rect x="850" y="282" width="210" height="16" rx="8" fill="#C3D9F6"/>
+  <rect x="850" y="314" width="150" height="38" rx="14" fill="#1B76FF"/>
+
+  <rect x="112" y="492" width="978" height="126" rx="24" fill="#F8FBFF" stroke="#DCE7F5"/>
+  <rect x="146" y="522" width="210" height="68" rx="16" fill="white" stroke="#DCE7F5"/>
+  <rect x="378" y="522" width="210" height="68" rx="16" fill="white" stroke="#DCE7F5"/>
+  <rect x="610" y="522" width="210" height="68" rx="16" fill="white" stroke="#DCE7F5"/>
+  <rect x="842" y="522" width="214" height="68" rx="16" fill="#1B76FF"/>
+
+  <text x="95" y="96" fill="white" font-family="Poppins, Arial, sans-serif" font-size="13" font-weight="700" letter-spacing="2">MODERN PHARMACY</text>
+  <text x="118" y="166" fill="#4A6FA0" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="700" letter-spacing="1.8">TEMPLATE 1 PREVIEW</text>
+</svg>

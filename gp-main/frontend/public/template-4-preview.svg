@@ -1,0 +1,54 @@
+<svg width="1200" height="700" viewBox="0 0 1200 700" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg4" x1="120" y1="40" x2="1080" y2="660" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E8FFF8"/>
+      <stop offset="0.55" stop-color="#F5FAFF"/>
+      <stop offset="1" stop-color="#FFFFFF"/>
+    </linearGradient>
+    <linearGradient id="glass4" x1="280" y1="120" x2="930" y2="560" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E8F4FF" stop-opacity="0.86"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.42"/>
+    </linearGradient>
+    <linearGradient id="chip4" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#1B76FF"/>
+      <stop offset="1" stop-color="#12B8D9"/>
+    </linearGradient>
+    <filter id="blurAura" x="-120" y="-120" width="1440" height="940" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="55"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="700" fill="url(#bg4)"/>
+  <ellipse cx="1040" cy="115" rx="230" ry="130" fill="#A7EEFF" fill-opacity="0.6" filter="url(#blurAura)"/>
+  <ellipse cx="170" cy="560" rx="210" ry="140" fill="#BEEBFF" fill-opacity="0.52" filter="url(#blurAura)"/>
+
+  <rect x="58" y="46" width="1084" height="66" rx="26" fill="white" fill-opacity="0.72" stroke="#E2ECF8"/>
+  <rect x="86" y="67" width="134" height="22" rx="11" fill="url(#chip4)"/>
+  <rect x="876" y="67" width="238" height="22" rx="11" fill="#E9F2FF"/>
+
+  <rect x="62" y="136" width="1076" height="512" rx="36" fill="url(#glass4)" stroke="#DCE8F8"/>
+
+  <rect x="106" y="184" width="620" height="262" rx="28" fill="white" fill-opacity="0.75" stroke="#E3ECF8"/>
+  <rect x="138" y="222" width="210" height="20" rx="10" fill="#BFD6F8"/>
+  <rect x="138" y="258" width="458" height="42" rx="16" fill="#7EB2EE" fill-opacity="0.8"/>
+  <rect x="138" y="316" width="372" height="18" rx="9" fill="#CCDDF3"/>
+  <rect x="138" y="356" width="156" height="44" rx="16" fill="url(#chip4)"/>
+  <rect x="310" y="356" width="156" height="44" rx="16" fill="white" stroke="#C9DDF6"/>
+
+  <rect x="756" y="184" width="336" height="262" rx="28" fill="#132237" fill-opacity="0.92"/>
+  <rect x="788" y="222" width="180" height="18" rx="9" fill="#4D6787"/>
+  <rect x="788" y="256" width="270" height="18" rx="9" fill="#365273"/>
+  <rect x="788" y="296" width="270" height="18" rx="9" fill="#365273"/>
+  <rect x="788" y="336" width="270" height="18" rx="9" fill="#365273"/>
+  <rect x="788" y="376" width="120" height="38" rx="14" fill="#1B76FF"/>
+
+  <rect x="106" y="474" width="986" height="142" rx="26" fill="white" fill-opacity="0.78" stroke="#E2EAF7"/>
+  <rect x="138" y="510" width="178" height="72" rx="18" fill="#F7FBFF" stroke="#DCE8F8"/>
+  <rect x="338" y="510" width="178" height="72" rx="18" fill="#F7FBFF" stroke="#DCE8F8"/>
+  <rect x="538" y="510" width="178" height="72" rx="18" fill="#F7FBFF" stroke="#DCE8F8"/>
+  <rect x="738" y="510" width="178" height="72" rx="18" fill="#F7FBFF" stroke="#DCE8F8"/>
+  <rect x="938" y="510" width="124" height="72" rx="18" fill="url(#chip4)"/>
+
+  <text x="92" y="96" fill="white" font-family="Poppins, Arial, sans-serif" font-size="13" font-weight="700" letter-spacing="2">AURORA GLASS RX</text>
+  <text x="112" y="166" fill="#406A9A" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="700" letter-spacing="1.8">TEMPLATE 4 PREVIEW</text>
+</svg>

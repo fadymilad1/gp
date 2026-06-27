@@ -1,0 +1,45 @@
+<svg width="1200" height="700" viewBox="0 0 1200 700" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg6" x1="0" y1="0" x2="1200" y2="700" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#04070F"/>
+      <stop offset="1" stop-color="#0B1220"/>
+    </linearGradient>
+    <linearGradient id="lime6" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#B7F75F"/>
+      <stop offset="1" stop-color="#66F07B"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="700" fill="url(#bg6)"/>
+  <circle cx="1060" cy="112" r="130" fill="#C7FF63" fill-opacity="0.08"/>
+  <circle cx="162" cy="585" r="120" fill="#56E07A" fill-opacity="0.07"/>
+
+  <rect x="54" y="42" width="1092" height="74" rx="24" fill="#0E1524" stroke="#1E2A40"/>
+  <rect x="86" y="66" width="190" height="26" rx="13" fill="url(#lime6)"/>
+  <rect x="814" y="67" width="300" height="24" rx="12" fill="#131D31"/>
+
+  <rect x="72" y="142" width="1056" height="508" rx="34" fill="#0B1322" stroke="#1C2940"/>
+
+  <rect x="114" y="184" width="656" height="266" rx="30" fill="#111A2B" stroke="#223049"/>
+  <rect x="146" y="220" width="200" height="18" rx="9" fill="#445D7F"/>
+  <rect x="146" y="254" width="510" height="44" rx="16" fill="#202F48"/>
+  <rect x="146" y="312" width="360" height="16" rx="8" fill="#2E405D"/>
+  <rect x="146" y="350" width="184" height="44" rx="16" fill="url(#lime6)"/>
+  <rect x="346" y="350" width="184" height="44" rx="16" fill="#0A1220" stroke="#2B3A58"/>
+
+  <rect x="796" y="184" width="288" height="266" rx="30" fill="#121A2B" stroke="#273651"/>
+  <rect x="826" y="220" width="196" height="16" rx="8" fill="#3B5273"/>
+  <rect x="826" y="254" width="226" height="16" rx="8" fill="#2E4261"/>
+  <rect x="826" y="288" width="226" height="16" rx="8" fill="#2E4261"/>
+  <rect x="826" y="322" width="226" height="16" rx="8" fill="#2E4261"/>
+  <rect x="826" y="358" width="132" height="38" rx="14" fill="url(#lime6)"/>
+
+  <rect x="114" y="474" width="970" height="146" rx="26" fill="#0F1728" stroke="#22344E"/>
+  <rect x="146" y="510" width="222" height="74" rx="18" fill="#131F34" stroke="#2A3E5C"/>
+  <rect x="388" y="510" width="222" height="74" rx="18" fill="#131F34" stroke="#2A3E5C"/>
+  <rect x="630" y="510" width="222" height="74" rx="18" fill="#131F34" stroke="#2A3E5C"/>
+  <rect x="872" y="510" width="180" height="74" rx="18" fill="url(#lime6)"/>
+
+  <text x="95" y="94" fill="#06100C" font-family="Poppins, Arial, sans-serif" font-size="13" font-weight="700" letter-spacing="2">NEOMEDS BENTO</text>
+  <text x="120" y="166" fill="#6D85AA" font-family="Poppins, Arial, sans-serif" font-size="12" font-weight="700" letter-spacing="1.8">TEMPLATE 6 PREVIEW</text>
+</svg>
