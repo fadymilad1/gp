@@ -57,8 +57,8 @@ const getDoctorSummary = (doc: Doctor) => {
   return { title: '', experience: '', summary: rawBio };
 };
 
-const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const toHospitalWeekday = (date: Date) => (date.getDay() + 6) % 7;
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const toHospitalWeekday = (date: Date) => date.getDay();
 const formatTime = (time: string) => (time || '').slice(0, 5);
 
 const sortSchedules = (schedules: Doctor['schedules']) =>

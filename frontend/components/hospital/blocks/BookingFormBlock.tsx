@@ -39,7 +39,12 @@ function formatDisplayDate(iso: string) {
 }
 
 function formatTime(isoString: string) {
-  return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  return new Date(isoString).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'Africa/Cairo',
+  });
 }
 
 function getDoctorSummary(doc: Doctor) {
@@ -155,12 +160,13 @@ function CalendarPicker({
   availableDates?: Set<string>;
 }) {
   const today = new Date();
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth());
+  const todayCairo = new Date(today.toLocaleString('en-US', { timeZone: 'Africa/Cairo' }));
+  const [year, setYear] = useState(todayCairo.getFullYear());
+  const [month, setMonth] = useState(todayCairo.getMonth());
 
   const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const todayStr = today.toISOString().split('T')[0];
+  const todayStr = today.toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
 
   const goBack = () => {
     if (month === 0) { setMonth(11); setYear(y => y - 1); }
@@ -224,9 +230,7 @@ function CalendarPicker({
           if (!day) return <div key={i} />;
           const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
           const isPast = dateStr < todayStr;
-          const jsDay = new Date(year, month, day).getDay(); // 0=Sun,6=Sat
-          // Convert JS Sunday=0 to Mon=0 system used by schedules
-          const hospitalDay = (jsDay + 6) % 7;
+          const hospitalDay = new Date(year, month, day).getDay();
           
           // Check if date is available: either in specific dates or matches workDays
           let isWorkDay = false;
@@ -719,23 +723,24 @@ export default function BookingFormBlock({ settings, subdomain }: BookingFormBlo
                     </button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 gap-2.5 max-h-60 overflow-y-auto sm:grid-cols-4">
+                  <div className="grid grid-cols-3 gap-1 max-h-60 overflow-y-auto overflow-x-hidden sm:grid-cols-4">
                     {slots.map((slot, idx) => {
                       const isSelected = selectedSlot?.start_datetime === slot.start_datetime;
                       return (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => setSelectedSlot(slot)}
-                          className="rounded-xl py-3 text-sm font-semibold transition-all"
-                          style={
-                            isSelected
-                              ? { backgroundColor: 'var(--hospital-btn-primary)', color: 'var(--hospital-btn-primary-text)', transform: 'scale(1.05)' }
-                              : { border: '1px solid var(--hospital-border)', backgroundColor: 'var(--hospital-surface)', color: 'var(--hospital-text)' }
-                          }
-                        >
-                          {formatTime(slot.start_datetime)}
-                        </button>
+                        <div key={idx} className="p-1">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedSlot(slot)}
+                            className="w-full rounded-xl py-3 text-sm font-semibold transition-all"
+                            style={
+                              isSelected
+                                ? { backgroundColor: 'var(--hospital-btn-primary)', color: 'var(--hospital-btn-primary-text)', transform: 'scale(1.05)' }
+                                : { border: '1px solid var(--hospital-border)', backgroundColor: 'var(--hospital-surface)', color: 'var(--hospital-text)' }
+                            }
+                          >
+                            {formatTime(slot.start_datetime)}
+                          </button>
+                        </div>
                       );
                     })}
                   </div>

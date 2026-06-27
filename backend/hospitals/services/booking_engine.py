@@ -8,8 +8,8 @@ def get_available_slots(doctor, target_date: date):
     Computes available slots dynamically for a given doctor and date.
     Returns a list of dicts: [{'start_datetime': datetime, 'end_datetime': datetime}]
     """
-    # 0 = Monday, ..., 6 = Sunday
-    day_of_week = target_date.weekday()
+    # Python weekday: 0=Mon..6=Sun. Model stores: 0=Sun..6=Sat.
+    day_of_week = (target_date.weekday() + 1) % 7
 
     # Get schedules - prioritize specific_date if set, otherwise use day_of_week
     schedules = DoctorSchedule.objects.filter(

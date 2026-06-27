@@ -33,11 +33,11 @@ class HospitalModuleTests(TestCase):
             specialty='Cardiologist'
         )
 
-        self.test_date = datetime.date(2025, 1, 6)
+        self.test_date = datetime.date(2025, 1, 6)  # Monday
 
         DoctorSchedule.objects.create(
             doctor=self.doctor,
-            day_of_week=0,
+            day_of_week=1,  # 0=Sun, 1=Mon, ..., 6=Sat
             start_time=datetime.time(9, 0),
             end_time=datetime.time(11, 0),
             slot_duration_minutes=30
@@ -108,7 +108,7 @@ class HospitalModuleTests(TestCase):
     def test_5_multi_slot_day(self):
         DoctorSchedule.objects.create(
             doctor=self.doctor,
-            day_of_week=0,
+            day_of_week=1,
             start_time=datetime.time(14, 0),
             end_time=datetime.time(15, 0),
             slot_duration_minutes=30

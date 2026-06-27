@@ -246,7 +246,7 @@ export const hospitalAdminApi = {
   /** Creates Mon–Fri 09:00–17:00 (30 min slots) for a newly created doctor */
   async createDefaultSchedules(doctorId: string): Promise<void> {
     const hdrs = await authHeaders();
-    for (let day = 0; day <= 4; day++) {
+    for (let day = 1; day <= 5; day++) {
       await fetch(`${API_BASE_URL}/hospital/admin/schedules/`, {
         method: 'POST',
         headers: hdrs,

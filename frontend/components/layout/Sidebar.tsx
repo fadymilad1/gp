@@ -4,18 +4,26 @@ import React, { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
-  FiHome,
-  FiGlobe,
-  FiLayers,
-  FiLayout,
-  FiPackage,
-  FiInfo,
-  FiMessageSquare,
-  FiSettings,
-  FiLogOut,
-  FiX,
-  FiShoppingCart,
-} from 'react-icons/fi'
+  LuHome,
+  LuGlobe,
+  LuBuilding,
+  LuLayout,
+  LuLayoutTemplate,
+  LuLayers,
+  LuStethoscope,
+  LuCalendarCheck,
+  LuInfo,
+  LuBell,
+  LuMessageSquare,
+  LuPill,
+  LuSettings,
+  LuStore,
+  LuPackage,
+  LuShoppingCart,
+  LuLogOut,
+  LuX,
+  LuSparkles,
+} from 'react-icons/lu'
 import { BrandLogo } from '@/components/pharmacy/BrandLogo'
 import { logoutUser } from '@/lib/auth'
 import { getOwnerUnseenPharmacyOrdersCount } from '@/lib/pharmacyOrders'
@@ -153,29 +161,29 @@ export const Sidebar: React.FC<SidebarProps> = ({ userType, isOpen = true, onClo
   const dashboardHref = currentUserType === 'pharmacy' ? '/dashboard/pharmacy' : '/dashboard/hospital'
 
   const menuItems: SidebarItem[] = [
-    { label: 'Dashboard', icon: <FiHome />, href: dashboardHref },
+    { label: 'Dashboard', icon: <LuHome />, href: dashboardHref },
     ...(currentUserType === 'hospital'
       ? [
-        { label: 'My Website', icon: <FiGlobe />, href: '/dashboard/business-info' },
-        { label: 'Hospital Setup', icon: <FiLayout />, href: '/dashboard/hospital/setup' },
-        { label: 'Customization', icon: <FiLayout />, href: '/dashboard/hospital/customization' },
-        { label: 'Departments', icon: <FiLayers />, href: '/dashboard/hospital/departments' },
-        { label: 'Doctors', icon: <FiLayout />, href: '/dashboard/hospital/doctors' },
-        { label: 'Appointments', icon: <FiShoppingCart />, href: '/dashboard/hospital/appointments' },
-        { label: 'Patients', icon: <FiInfo />, href: '/dashboard/hospital/patients' },
-        { label: 'Notifications', icon: <FiMessageSquare />, href: '/dashboard/hospital/notifications' },
-        { label: 'AI Assistant', icon: <FiMessageSquare />, href: '/dashboard/hospital/ai-assistant' },
+        { label: 'My Website', icon: <LuGlobe />, href: '/dashboard/business-info' },
+        { label: 'Hospital Setup', icon: <LuBuilding />, href: '/dashboard/hospital/setup' },
+        { label: 'Customization', icon: <LuLayout />, href: '/dashboard/hospital/customization' },
+        { label: 'Departments', icon: <LuLayers />, href: '/dashboard/hospital/departments' },
+        { label: 'Doctors', icon: <LuStethoscope />, href: '/dashboard/hospital/doctors' },
+        { label: 'Appointments', icon: <LuCalendarCheck />, href: '/dashboard/hospital/appointments' },
+        { label: 'Patients', icon: <LuInfo />, href: '/dashboard/hospital/patients' },
+        { label: 'Notifications', icon: <LuBell />, href: '/dashboard/hospital/notifications' },
+        { label: 'AI Assistant', icon: <LuSparkles />, href: '/dashboard/hospital/ai-assistant' },
       ]
       : []),
     ...(currentUserType === 'pharmacy'
       ? [
-        { label: 'Create Website', icon: <FiLayout />, href: '/dashboard/pharmacy/setup' },
-        { label: 'Templates', icon: <FiLayout />, href: '/dashboard/pharmacy/templates' },
-        { label: 'Business Info', icon: <FiInfo />, href: '/dashboard/business-info' },
-        { label: 'Products', icon: <FiPackage />, href: '/dashboard/pharmacy/products' },
-        { label: 'Orders', icon: <FiShoppingCart />, href: '/dashboard/orders' },
-        { label: 'AI Assistant', icon: <FiMessageSquare />, href: '/dashboard/pharmacy/ai-assistant' },
-        { label: 'Settings', icon: <FiSettings />, href: '/dashboard/settings' },
+        { label: 'Create Website', icon: <LuGlobe />, href: '/dashboard/pharmacy/setup' },
+        { label: 'Templates', icon: <LuLayoutTemplate />, href: '/dashboard/pharmacy/templates' },
+        { label: 'Business Info', icon: <LuStore />, href: '/dashboard/business-info' },
+        { label: 'Products', icon: <LuPill />, href: '/dashboard/pharmacy/products' },
+        { label: 'Orders', icon: <LuShoppingCart />, href: '/dashboard/orders' },
+        { label: 'AI Assistant', icon: <LuSparkles />, href: '/dashboard/pharmacy/ai-assistant' },
+        { label: 'Settings', icon: <LuSettings />, href: '/dashboard/settings' },
       ]
       : []),
   ]
@@ -231,7 +239,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ userType, isOpen = true, onClo
             className="md:hidden p-2 text-neutral-gray hover:text-neutral-dark"
             aria-label="Close sidebar menu"
           >
-            <FiX size={24} />
+            <LuX size={24} />
           </button>
         </div>
         <nav className="flex-1 p-4 overflow-y-auto">
@@ -271,7 +279,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ userType, isOpen = true, onClo
             disabled={isLoggingOut}
             className="flex items-center gap-3 px-4 py-3 rounded-lg text-error hover:bg-neutral-light w-full transition-colors text-sm sm:text-base"
           >
-            <FiLogOut />
+            <LuLogOut />
             <span>{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
           </button>
         </div>
