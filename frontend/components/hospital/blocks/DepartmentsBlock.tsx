@@ -31,7 +31,7 @@ export default async function DepartmentsBlock({
   const total = departments.length;
 
   return (
-    <section className="relative w-full overflow-hidden py-20 px-4 sm:px-6 lg:px-8">
+    <section id="departments" className="relative w-full overflow-hidden py-20 px-4 sm:px-6 lg:px-8">
       {/* Glow Blobs */}
       <div
         aria-hidden="true"

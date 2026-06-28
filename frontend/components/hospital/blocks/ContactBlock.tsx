@@ -65,6 +65,7 @@ export default function ContactBlock({
 
   return (
     <section
+      id="contact"
       className="w-full py-16 px-4"
       style={{ background: 'var(--hospital-surface-alt)' }}
     >

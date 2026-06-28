@@ -16,7 +16,16 @@ class HospitalProfileSerializer(serializers.ModelSerializer):
         """Return contact/hours data from the linked BusinessInfo record."""
         try:
             bi = obj.website_setup.business_info
+            request = self.context.get('request')
+            logo_url = None
+            if bi.logo:
+                if request:
+                    logo_url = request.build_absolute_uri(bi.logo.url)
+                else:
+                    logo_url = bi.logo.url
             return {
+                'name': bi.name or '',
+                'logo_url': logo_url,
                 'contact_phone': bi.contact_phone or '',
                 'contact_email': bi.contact_email or '',
                 'address': bi.address or '',
@@ -25,6 +34,7 @@ class HospitalProfileSerializer(serializers.ModelSerializer):
             }
         except Exception:
             return {}
+
 
     def get_patients_treated(self, obj):
         from hospitals.models import Appointment

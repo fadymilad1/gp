@@ -38,10 +38,10 @@ export default async function HospitalLayout({ children, params }: LayoutProps) 
     const fontSize = theme.fontSize || '16px';
     const fontStyle = theme.fontStyle || 'normal';
     
-    const chatbotName = theme.chatbotName || `${profile?.name || 'Hospital'} Medical AI`;
+    const chatbotName = theme.chatbotName || `${businessInfo?.name || profile?.name || 'Hospital'} Medical AI`;
     const chatbotColor = theme.chatbotColor || primaryColor;
     const emergencyNumber = theme.emergencyNumber || '911';
-    const logoUrl = profile?.logo ? normalizeLogoUrl(profile.logo) : null;
+    const logoUrl = normalizeLogoUrl(businessInfo?.logo_url || businessInfo?.logo || profile?.logo);
 
     // Load Google Font
     const fontUrl = `https://fonts.googleapis.com/css2?family=${fontFamily.replace(/ /g, '+')}:wght@400;500;600;700&display=swap`;
@@ -270,7 +270,7 @@ export default async function HospitalLayout({ children, params }: LayoutProps) 
                 <footer className="border-t border-slate-200 bg-slate-900 text-slate-200">
                     <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 md:grid-cols-4">
                         <div>
-                            <p className="text-lg font-semibold text-white">{profile?.name || resolvedParams.subdomain}</p>
+                            <p className="text-lg font-semibold text-white">{businessInfo?.name || profile?.name || resolvedParams.subdomain}</p>
                             <p className="mt-2 text-sm text-slate-400">
                                 {profile?.description || 'Compassionate care with modern clinical excellence.'}
                             </p>
@@ -294,11 +294,15 @@ export default async function HospitalLayout({ children, params }: LayoutProps) 
                         <div id="contact">
                             <p className="text-sm font-semibold text-white">Contact</p>
                             <div className="mt-3 space-y-2 text-sm text-slate-400">
-                                <p>{emergencyNumber}</p>
-                                <p>support@medify.com</p>
-                                <p>Medical District</p>
+                                <p>{businessInfo?.contact_phone || emergencyNumber}</p>
+                                <p>{businessInfo?.contact_email || 'support@medify.com'}</p>
+                                <p className="line-clamp-2">{businessInfo?.address || 'Medical District'}</p>
                             </div>
                         </div>
+                    </div>
+                    {/* Bottom copyright bar */}
+                    <div className="border-t border-slate-800 bg-slate-950/40 py-6 text-center text-xs text-slate-500">
+                        <p>© {new Date().getFullYear()} {businessInfo?.name || profile?.name || resolvedParams.subdomain}. All rights reserved by medify.com.</p>
                     </div>
                 </footer>
             </div>
