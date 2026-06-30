@@ -197,3 +197,31 @@ class PharmacyOrderApiTests(APITestCase):
 		self.assertEqual(mark_response.status_code, status.HTTP_200_OK)
 		self.assertEqual(mark_response.data['marked_seen'], 1)
 		self.assertEqual(mark_response.data['remaining_unseen'], 1)
+
+	def test_cancelling_order_restores_stock(self):
+		create_response = self.client.post(self.place_endpoint, self._build_payload(), format='json')
+		self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+
+		# Verify stock is reduced
+		self.product_a.refresh_from_db()
+		self.product_b.refresh_from_db()
+		self.assertEqual(self.product_a.stock, 18)
+		self.assertEqual(self.product_b.stock, 9)
+
+		self.client.force_authenticate(self.owner)
+		order_id = create_response.data['order']['id']
+
+		# Cancel the order
+		cancel_response = self.client.patch(
+			f'/api/pharmacy/orders/{order_id}/status/',
+			{'status': 'cancelled'},
+			format='json',
+		)
+		self.assertEqual(cancel_response.status_code, status.HTTP_200_OK)
+		self.assertEqual(cancel_response.data['status'], 'cancelled')
+
+		# Verify stock is restored
+		self.product_a.refresh_from_db()
+		self.product_b.refresh_from_db()
+		self.assertEqual(self.product_a.stock, 20)
+		self.assertEqual(self.product_b.stock, 10)

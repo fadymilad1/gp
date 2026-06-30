@@ -349,7 +349,7 @@ export default function PharmacyTemplatesPage() {
 
                   <ul className="mt-3 space-y-1 text-sm text-neutral-dark">
                     {template.highlights.map((item) => (
-                      <li key={item} className="inline-flex items-center gap-2">
+                      <li key={item} className="flex items-center gap-2">
                         <FiCheck className="text-success" />
                         {item}
                       </li>

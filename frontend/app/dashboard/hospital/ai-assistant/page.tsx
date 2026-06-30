@@ -28,6 +28,7 @@ function HospitalAIAssistantContent() {
   const [hasAIChatbot, setHasAIChatbot] = useState(false)
   const [conversationId, setConversationId] = useState<string | undefined>(undefined)
   const [isTyping, setIsTyping] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 1,
@@ -46,6 +47,7 @@ function HospitalAIAssistantContent() {
       hasFeatureLocal = features.aiChatbot === true
     }
     setHasAIChatbot(canChatbot || hasFeatureLocal)
+    setMounted(true)
   }, [canChatbot])
 
   const handleSend = async (e: React.FormEvent) => {
@@ -199,7 +201,7 @@ function HospitalAIAssistantContent() {
                     msg.type === 'user' ? 'text-primary-light' : 'text-neutral-gray'
                   }`}
                 >
-                  {msg.timestamp.toLocaleTimeString()}
+                  {mounted ? msg.timestamp.toLocaleTimeString() : ''}
                 </p>
               </div>
             </div>

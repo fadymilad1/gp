@@ -131,7 +131,7 @@ function ProductDetailsContent() {
         // Fallback to localStorage
         const setup = safeJsonParse<any>(getSiteItem('pharmacySetup'))
         const products = setup?.products || []
-        const foundProduct = products.find((_: any, idx: number) => `user-${idx}` === productId)
+        const foundProduct = products.find((p: any, idx: number) => String(p.id || `user-${idx}`) === String(productId))
         
         if (foundProduct) {
           // Parse stock correctly - it might be a number or string
@@ -187,7 +187,7 @@ function ProductDetailsContent() {
     const canAdd = currentInCart + quantity <= maxStock
 
     if (!canAdd) {
-      setCartWarning(`Only ${maxStock} units available. You already have ${currentInCart} in cart.`)
+      setCartWarning(`Cannot add more items. Cart limit reached.`)
       return
     }
 
@@ -344,11 +344,6 @@ function ProductDetailsContent() {
               <div className="flex items-center justify-between pt-4 border-t">
                 <span className="text-gray-600 font-medium">Availability:</span>
                 <div className="flex items-center gap-3">
-                  {product.stock !== undefined && (
-                    <span className="text-lg font-semibold text-neutral-dark">
-                      {product.stock} units
-                    </span>
-                  )}
                   <span className={`px-3 py-1 rounded-full text-sm font-semibold border ${stockStatus.color}`}>
                     {stockStatus.text}
                   </span>

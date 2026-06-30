@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   FiEdit2,
@@ -90,6 +90,7 @@ const getFailureCell = (data: Record<string, string>, aliases: string[]) => {
 export default function PharmacyProductsPage() {
   const router = useRouter()
   const { showToast } = useToast()
+  const formRef = useRef<HTMLDivElement>(null)
 
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
@@ -113,7 +114,7 @@ export default function PharmacyProductsPage() {
   const [serviceAccountEmail, setServiceAccountEmail] = useState<string | null>(null)
 
   const refreshProducts = async (syncFromSheet = false) => {
-    const res = await pharmacyProductsApi.list({ sync: syncFromSheet })
+    const res = await pharmacyProductsApi.list({ sync: syncFromSheet, force: syncFromSheet })
     if (res.error) {
       showToast({ type: 'error', title: 'Could not load products', message: res.error })
       return
@@ -292,7 +293,7 @@ export default function PharmacyProductsPage() {
       imagePreview: product.image_url_resolved || '',
       image_url: product.image_url || '',
     })
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   const handleDelete = async (product: PharmacyProduct) => {
@@ -655,7 +656,8 @@ export default function PharmacyProductsPage() {
         ) : null}
       </Card>
 
-      <Card className="p-6">
+      <div ref={formRef} style={{ scrollMarginTop: '24px' }}>
+        <Card className="p-6">
         <h2 className="text-xl font-semibold text-neutral-dark">Manual Product Add</h2>
         <form onSubmit={handleSubmitProduct} className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           <Input
@@ -676,7 +678,12 @@ export default function PharmacyProductsPage() {
             label="Price"
             value={form.price}
             error={formErrors.price}
-            onChange={(event) => setForm((prev) => ({ ...prev, price: event.target.value }))}
+            onChange={(event) => {
+              const val = event.target.value
+              if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                setForm((prev) => ({ ...prev, price: val }))
+              }
+            }}
             placeholder="19.99"
             inputMode="decimal"
           />
@@ -697,12 +704,6 @@ export default function PharmacyProductsPage() {
               rows={3}
             />
           </div>
-          <Input
-            label="Image URL (optional)"
-            value={form.image_url}
-            onChange={(event) => setForm((prev) => ({ ...prev, image_url: event.target.value }))}
-            placeholder="https://example.com/product.jpg"
-          />
           <label className="text-sm font-medium text-neutral-dark">
             Product image (optional)
             <input
@@ -745,6 +746,7 @@ export default function PharmacyProductsPage() {
           </div>
         </form>
       </Card>
+      </div>
 
       <Card className="p-6">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

@@ -7,7 +7,7 @@ import { hospitalAdminApi } from '@/lib/hospitalAdminApi';
 import { businessInfoApi } from '@/lib/api';
 import { normalizeLogoUrl, getScopedItem } from '@/lib/storage';
 import type { Appointment } from '@/types/hospital';
-import { FiPrinter, FiChevronDown, FiChevronRight, FiUser, FiCalendar } from 'react-icons/fi';
+import { FiPrinter, FiChevronDown, FiChevronRight, FiUser, FiCalendar, FiFileText } from 'react-icons/fi';
 
 type PatientWithAppointments = {
   name: string;
@@ -22,6 +22,7 @@ type DoctorGroup = {
   doctorId: string;
   doctorName: string;
   departmentName: string;
+  dateStr: string;
   patients: PatientWithAppointments[];
   totalAppointments: number;
 };
@@ -32,7 +33,33 @@ export default function HospitalPatientsPage() {
   const [expandedDoctors, setExpandedDoctors] = useState<Set<string>>(new Set());
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
   const [selectedDoctor, setSelectedDoctor] = useState<string>('all');
+  const [selectedDate, setSelectedDate] = useState<string>('');
   const [hospitalInfo, setHospitalInfo] = useState<{name: string, logoUrl: string | null}>({ name: 'Medify', logoUrl: null });
+
+  const getLocalDateString = (isoString: string) => {
+    const d = new Date(isoString);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const getDoctorAppointmentDates = (patients: PatientWithAppointments[]) => {
+    const dates = new Set<string>();
+    for (const patient of patients) {
+      for (const appt of patient.appointments) {
+        if (appt.status === 'CONFIRMED') {
+          dates.add(getLocalDateString(appt.start_datetime));
+        }
+      }
+    }
+    return Array.from(dates).sort();
+  };
+
+  const formatDateLabel = (dateStr: string) => {
+    const [year, month, day] = dateStr.split('-');
+    return `${Number(month)}/${Number(day)}/${year}`;
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -85,22 +112,43 @@ export default function HospitalPatientsPage() {
     void load();
   }, []);
 
+  const filteredAppointments = useMemo(() => {
+    if (!selectedDate) return appointments;
+    return appointments.filter(appt => {
+      const apptDateStr = getLocalDateString(appt.start_datetime);
+      return apptDateStr === selectedDate;
+    });
+  }, [appointments, selectedDate]);
+
   const doctorGroups = useMemo<DoctorGroup[]>(() => {
-    const doctorMap = new Map<string, Map<string, PatientWithAppointments>>();
+    const doctorDateMap = new Map<string, {
+      doctorId: string;
+      doctorName: string;
+      departmentName: string;
+      dateStr: string;
+      patientsMap: Map<string, PatientWithAppointments>;
+    }>();
 
-    for (const appointment of appointments) {
+    for (const appointment of filteredAppointments) {
       const doctorId = appointment.doctor;
-      const doctorName = appointment.doctor_name || 'Unknown Doctor';
-      const patientKey = `${appointment.patient_name}|${appointment.patient_email}|${appointment.patient_phone}`;
-
-      if (!doctorMap.has(doctorId)) {
-        doctorMap.set(doctorId, new Map());
+      const dateStr = getLocalDateString(appointment.start_datetime);
+      const key = `${doctorId}|${dateStr}`;
+      
+      if (!doctorDateMap.has(key)) {
+        doctorDateMap.set(key, {
+          doctorId,
+          doctorName: appointment.doctor_name || 'Unknown Doctor',
+          departmentName: appointment.department_name || 'General',
+          dateStr,
+          patientsMap: new Map(),
+        });
       }
 
-      const patientsMap = doctorMap.get(doctorId)!;
-      
-      if (!patientsMap.has(patientKey)) {
-        patientsMap.set(patientKey, {
+      const entry = doctorDateMap.get(key)!;
+      const patientKey = `${appointment.patient_name}|${appointment.patient_email}|${appointment.patient_phone}`;
+
+      if (!entry.patientsMap.has(patientKey)) {
+        entry.patientsMap.set(patientKey, {
           name: appointment.patient_name,
           email: appointment.patient_email,
           phone: appointment.patient_phone,
@@ -110,25 +158,29 @@ export default function HospitalPatientsPage() {
         });
       }
 
-      patientsMap.get(patientKey)!.appointments.push(appointment);
+      entry.patientsMap.get(patientKey)!.appointments.push(appointment);
     }
 
     const groups: DoctorGroup[] = [];
-    for (const [doctorId, patientsMap] of doctorMap.entries()) {
-      const patients = [...patientsMap.values()];
-      const firstAppointment = patients[0]?.appointments[0];
-      
+    for (const entry of doctorDateMap.values()) {
+      const patients = [...entry.patientsMap.values()];
       groups.push({
-        doctorId,
-        doctorName: firstAppointment?.doctor_name || 'Unknown Doctor',
-        departmentName: firstAppointment?.department_name || 'General',
+        doctorId: entry.doctorId,
+        doctorName: entry.doctorName,
+        departmentName: entry.departmentName,
+        dateStr: entry.dateStr,
         patients: patients.sort((a, b) => a.name.localeCompare(b.name)),
         totalAppointments: patients.reduce((sum, p) => sum + p.appointments.length, 0),
       });
     }
 
-    return groups.sort((a, b) => a.doctorName.localeCompare(b.doctorName));
-  }, [appointments]);
+    // Sort by date first, then by doctor name
+    return groups.sort((a, b) => {
+      const dateCompare = a.dateStr.localeCompare(b.dateStr);
+      if (dateCompare !== 0) return dateCompare;
+      return a.doctorName.localeCompare(b.doctorName);
+    });
+  }, [filteredAppointments]);
 
   const uniqueDepartments = useMemo(() => {
     const depts = new Set<string>();
@@ -141,52 +193,120 @@ export default function HospitalPatientsPage() {
     return doctorGroups.filter(g => g.departmentName === selectedDepartment);
   }, [doctorGroups, selectedDepartment]);
 
+  const uniqueDoctorsForFilter = useMemo(() => {
+    const seen = new Set<string>();
+    const result: { doctorId: string; doctorName: string }[] = [];
+    for (const group of filteredDoctorsByDept) {
+      if (!seen.has(group.doctorId)) {
+        seen.add(group.doctorId);
+        result.push({
+          doctorId: group.doctorId,
+          doctorName: group.doctorName,
+        });
+      }
+    }
+    return result.sort((a, b) => a.doctorName.localeCompare(b.doctorName));
+  }, [filteredDoctorsByDept]);
+
   const filteredGroups = selectedDoctor === 'all' 
     ? filteredDoctorsByDept 
     : filteredDoctorsByDept.filter(g => g.doctorId === selectedDoctor);
 
-  const toggleDoctor = (doctorId: string) => {
+  const toggleDoctor = (key: string) => {
     setExpandedDoctors(prev => {
       const next = new Set(prev);
-      if (next.has(doctorId)) {
-        next.delete(doctorId);
+      if (next.has(key)) {
+        next.delete(key);
       } else {
-        next.add(doctorId);
+        next.add(key);
       }
       return next;
     });
   };
 
-  const handlePrint = (doctorId?: string) => {
-    let groupsToPrint = doctorId 
-      ? doctorGroups.filter(g => g.doctorId === doctorId)
-      : filteredGroups;
+  const handlePrint = (doctorId?: string, targetDate?: string) => {
+    let apptsToPrint = appointments.filter(appt => appt.status === 'CONFIRMED');
 
-    // Filter for today's confirmed appointments
-    const today = new Date();
-    const todayStart = new Date(today.setHours(0,0,0,0));
-    const todayEnd = new Date(today.setHours(23,59,59,999));
+    if (doctorId) {
+      apptsToPrint = apptsToPrint.filter(appt => appt.doctor === doctorId);
+    } else {
+      if (selectedDoctor !== 'all') {
+        apptsToPrint = apptsToPrint.filter(appt => appt.doctor === selectedDoctor);
+      }
+      if (selectedDepartment !== 'all') {
+        apptsToPrint = apptsToPrint.filter(appt => appt.department_name === selectedDepartment);
+      }
+    }
+    
+    const activeDateFilter = targetDate || selectedDate;
+    if (activeDateFilter) {
+      apptsToPrint = apptsToPrint.filter(appt => getLocalDateString(appt.start_datetime) === activeDateFilter);
+    }
 
-    groupsToPrint = groupsToPrint.map(group => {
-      const todayPatients = group.patients.map(patient => {
-        const todayAppointments = patient.appointments.filter(appt => {
-          const apptDate = new Date(appt.start_datetime);
-          return apptDate >= todayStart && apptDate <= todayEnd && appt.status === 'CONFIRMED';
+    const printMap = new Map<string, {
+      doctorId: string;
+      doctorName: string;
+      departmentName: string;
+      dateStr: string;
+      appointments: Appointment[];
+    }>();
+
+    for (const appt of apptsToPrint) {
+      const dateStr = getLocalDateString(appt.start_datetime);
+      const key = `${appt.doctor}|${dateStr}`;
+      if (!printMap.has(key)) {
+        printMap.set(key, {
+          doctorId: appt.doctor,
+          doctorName: appt.doctor_name || 'Unknown Doctor',
+          departmentName: appt.department_name || 'General',
+          dateStr,
+          appointments: [],
         });
-        return { ...patient, appointments: todayAppointments };
-      }).filter(p => p.appointments.length > 0);
+      }
+      printMap.get(key)!.appointments.push(appt);
+    }
+
+    const printGroups = Array.from(printMap.values()).map(group => {
+      const patientMap = new Map<string, PatientWithAppointments>();
+      for (const appt of group.appointments) {
+        const patientKey = `${appt.patient_name}|${appt.patient_email}|${appt.patient_phone}`;
+        if (!patientMap.has(patientKey)) {
+          patientMap.set(patientKey, {
+            name: appt.patient_name,
+            email: appt.patient_email,
+            phone: appt.patient_phone,
+            gender: appt.patient_gender,
+            age: appt.patient_age,
+            appointments: [],
+          });
+        }
+        patientMap.get(patientKey)!.appointments.push(appt);
+      }
+
+      const patients = Array.from(patientMap.values()).sort((a, b) => a.name.localeCompare(b.name));
 
       return {
-        ...group,
-        patients: todayPatients,
-        totalAppointments: todayPatients.reduce((sum, p) => sum + p.appointments.length, 0),
+        doctorId: group.doctorId,
+        doctorName: group.doctorName,
+        departmentName: group.departmentName,
+        dateStr: group.dateStr,
+        patients,
+        totalAppointments: group.appointments.length,
       };
-    }).filter(g => g.patients.length > 0);
+    });
 
-    if (groupsToPrint.length === 0) {
-      alert("No confirmed appointments found for today.");
+    printGroups.sort((a, b) => {
+      const dateCompare = a.dateStr.localeCompare(b.dateStr);
+      if (dateCompare !== 0) return dateCompare;
+      return a.doctorName.localeCompare(b.doctorName);
+    });
+
+    if (printGroups.length === 0) {
+      alert("No confirmed appointments found.");
       return;
     }
+
+    const uniqueDoctorsCount = new Set(printGroups.map(g => g.doctorId)).size;
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -195,158 +315,59 @@ export default function HospitalPatientsPage() {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Patient List - ${doctorId ? groupsToPrint[0]?.doctorName : 'All Doctors'}</title>
+          <title>Patient List - ${doctorId ? printGroups[0]?.doctorName : 'All Doctors'}</title>
           <style>
-            body { 
-              font-family: Arial, sans-serif; 
-              padding: 20px;
-              color: #333;
-            }
-            .brand-header {
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              border-bottom: 3px solid #2563eb;
-              padding-bottom: 15px;
-              margin-bottom: 25px;
-            }
-            .brand-logo {
-              display: flex;
-              align-items: center;
-              gap: 12px;
-            }
-            .brand-text {
-              font-size: 26px;
-              font-weight: 800;
-              color: #1e3a8a;
-              letter-spacing: -0.5px;
-            }
-            h1 { 
-              color: #4b5563; 
-              font-size: 18px;
-              font-weight: 600;
-              margin: 0;
-              text-transform: uppercase;
-              letter-spacing: 1px;
-            }
-            .doctor-header {
-              display: flex;
-              align-items: center;
-              gap: 12px;
-              margin-top: 35px;
-              margin-bottom: 15px;
-            }
-            h2 { 
-              color: #2563eb; 
-              margin: 0;
-              font-size: 20px;
-            }
-            .dept-badge {
-              background: #eff6ff;
-              color: #1d4ed8;
-              border: 1px solid #bfdbfe;
-              padding: 4px 12px;
-              border-radius: 100px;
-              font-size: 12px;
-              font-weight: 700;
-              text-transform: uppercase;
-              letter-spacing: 0.5px;
-            }
-            table { 
-              width: 100%; 
-              border-collapse: collapse; 
-              margin-bottom: 30px;
-              background: white;
-            }
-            th { 
-              background-color: #f3f4f6; 
-              padding: 12px 8px; 
-              text-align: left; 
-              border: 1px solid #e5e7eb;
-              font-weight: 600;
-              color: #374151;
-              font-size: 13px;
-            }
-            td { 
-              padding: 10px 8px; 
-              border: 1px solid #e5e7eb;
-              font-size: 13px;
-              vertical-align: top;
-            }
-            tr:nth-child(even) {
-              background-color: #f9fafb;
-            }
-            .header-info {
-              display: flex;
-              justify-content: space-between;
-              margin-bottom: 20px;
-              padding: 15px;
-              background: #f3f4f6;
-              border-radius: 8px;
-            }
-            .summary {
-              margin-bottom: 20px;
-              padding: 15px;
-              background: #eff6ff;
-              border-left: 4px solid #2563eb;
-            }
-            .appointment-list {
-              margin: 0;
-              padding: 0;
-              list-style: none;
-            }
-            .appointment-item {
-              padding: 4px 0;
-              font-size: 12px;
-            }
-            .appointment-date {
-              font-weight: 600;
-              color: #1f2937;
-            }
-            .appointment-time {
-              color: #6b7280;
-              margin-left: 8px;
-            }
-            .checkbox-box {
-              display: inline-block;
-              width: 14px;
-              height: 14px;
-              border: 1px solid #9ca3af;
-              border-radius: 3px;
-              margin-left: 10px;
-              vertical-align: text-bottom;
-              background-color: white;
-            }
-            @media print {
-              .no-print { display: none; }
-              body { padding: 0; }
-            }
+            body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
+            .brand-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #2563eb; padding-bottom: 15px; margin-bottom: 25px; }
+            .brand-logo { display: flex; align-items: center; gap: 12px; }
+            .brand-text { font-size: 26px; font-weight: 800; color: #1e3a8a; letter-spacing: -0.5px; }
+            h1 { color: #4b5563; font-size: 18px; font-weight: 600; margin: 0; text-transform: uppercase; letter-spacing: 1px; }
+            .doctor-header { display: flex; flex-direction: column; margin-top: 35px; margin-bottom: 15px; }
+            h2 { color: #2563eb; margin: 0; font-size: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 30px; background: white; }
+            th { background-color: #f3f4f6; padding: 12px 8px; text-align: left; border: 1px solid #e5e7eb; font-weight: 600; color: #374151; font-size: 13px; }
+            td { padding: 10px 8px; border: 1px solid #e5e7eb; font-size: 13px; vertical-align: top; }
+            tr:nth-child(even) { background-color: #f9fafb; }
+            .header-info { display: flex; justify-content: space-between; margin-bottom: 20px; padding: 15px; background: #f3f4f6; border-radius: 8px; }
+            .summary { margin-bottom: 20px; padding: 15px; background: #eff6ff; border-left: 4px solid #2563eb; }
+            .appointment-list { margin: 0; padding: 0; list-style: none; }
+            .appointment-item { padding: 4px 0; font-size: 12px; }
+            .appointment-time { color: #6b7280; font-weight: 600; }
+            .checkbox-box { display: inline-block; width: 16px; height: 16px; border: 1.5px solid #6b7280; border-radius: 3px; vertical-align: text-bottom; }
+            @media print { .no-print { display: none; } body { padding: 0; } }
           </style>
         </head>
         <body>
           <div class="brand-header">
             <div class="brand-logo">
-              ${hospitalInfo.logoUrl ? `
-                <img src="${hospitalInfo.logoUrl}" alt="Hospital Logo" style="max-height: 40px; max-width: 120px; object-fit: contain;" />
-              ` : `
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                </svg>
-              `}
+              ${hospitalInfo.logoUrl ? `<img src="${hospitalInfo.logoUrl}" alt="Hospital Logo" style="max-height: 40px; max-width: 120px; object-fit: contain;" />` : `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>`}
               <div class="brand-text">${hospitalInfo.name}</div>
             </div>
-            <h1>Daily Patient Schedule</h1>
+            <h1>Patient Schedule</h1>
           </div>
           <div class="header-info">
-            <div><strong>Generated:</strong> ${new Date().toLocaleString()}</div>
-            <div><strong>Total Doctors:</strong> ${groupsToPrint.length}</div>
+            <div>
+              <strong>Generated:</strong> ${new Date().toLocaleString()}
+              ${selectedDate ? `<br/><strong>Schedule Date:</strong> ${new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}` : ''}
+            </div>
+            <div><strong>Total Doctors:</strong> ${uniqueDoctorsCount}</div>
           </div>
           
-          ${groupsToPrint.map(group => `
-            <div style="page-break-inside: avoid;">
-              <div class="doctor-header">
-                <h2>${group.doctorName}</h2>
-                <span class="dept-badge">${group.departmentName}</span>
+          ${printGroups.map(group => {
+            const formattedDate = new Date(group.dateStr + 'T00:00:00').toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            });
+
+            return `
+            <div style="page-break-inside: avoid; page-break-after: always; margin-bottom: 40px;">
+              <div class="doctor-header" style="border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 15px;">
+                <h2 style="font-size: 22px; color: #1e3a8a;">${group.doctorName}</h2>
+                <div style="font-size: 14px; color: #4b5563; font-weight: 600; margin-top: 4px;">
+                  ${group.departmentName} Department &bull; ${formattedDate}
+                </div>
               </div>
               <div class="summary">
                 <strong>Total Patients:</strong> ${group.patients.length} | 
@@ -356,68 +377,38 @@ export default function HospitalPatientsPage() {
                 <thead>
                   <tr>
                     <th style="width: 5%;">#</th>
-                    <th style="width: 20%;">Patient Name</th>
-                    <th style="width: 15%;">Phone</th>
-                    <th style="width: 10%;">Gender</th>
-                    <th style="width: 10%;">Age</th>
-                    <th style="width: 15%;">Department</th>
-                    <th style="width: 15%;">Time</th>
+                    <th style="width: 25%;">Patient Name</th>
+                    <th style="width: 20%;">Phone</th>
+                    <th style="width: 15%;">Age/Gender</th>
+                    <th style="width: 25%;">Appointment Time</th>
                     <th style="width: 10%; text-align: center;">Arrived</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${group.patients.map((patient, idx) => {
-                    const sortedAppointments = patient.appointments.sort((a, b) => 
-                      new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime()
-                    );
-                    
+                    const sortedAppts = patient.appointments.sort((a, b) => new Date(a.start_datetime).getTime() - new Date(b.start_datetime).getTime());
                     return `
                     <tr>
                       <td>${idx + 1}</td>
                       <td><strong>${patient.name}</strong></td>
                       <td>${patient.phone}</td>
-                      <td style="font-size: 11px;">${patient.gender || '-'}</td>
-                      <td style="font-size: 11px;">${patient.age || '-'}</td>
-                      <td style="font-size: 11px;">${group.departmentName}</td>
+                      <td>${patient.age || '-'} / ${patient.gender || '-'}</td>
                       <td>
                         <ul class="appointment-list">
-                          ${sortedAppointments.map(appt => {
-                            const date = new Date(appt.start_datetime);
-                            const dateStr = date.toLocaleDateString('en-US', { 
-                              month: 'short', 
-                              day: 'numeric', 
-                              year: 'numeric' 
-                            });
-                            const timeStr = date.toLocaleTimeString('en-US', { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            });
-                            
-                            return `
-                              <li class="appointment-item">
-                                <span class="appointment-date">${dateStr}</span>
-                                <span class="appointment-time">${timeStr}</span>
-                              </li>
-                            `;
-                          }).join('')}
+                          ${sortedAppts.map(a => `<li class="appointment-item"><span class="appointment-time">${new Date(a.start_datetime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span></li>`).join('')}
                         </ul>
                       </td>
-                      <td style="text-align: center; vertical-align: middle;">
-                        <span class="checkbox-box" style="margin: 0; width: 16px; height: 16px; border: 1.5px solid #6b7280;"></span>
-                      </td>
+                      <td style="text-align: center; vertical-align: middle;"><span class="checkbox-box"></span></td>
                     </tr>
-                  `;
+                    `;
                   }).join('')}
                 </tbody>
               </table>
             </div>
-          `).join('')}
+            `;
+          }).join('')}
           
-          <script>
-            window.onload = () => {
-              window.print();
-            };
-          </script>
+          <script>window.onload = () => { window.print(); };</script>
         </body>
       </html>
     `;
@@ -445,7 +436,7 @@ export default function HospitalPatientsPage() {
 
       {/* Filters */}
       <Card className="p-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 flex-wrap">
           <div className="flex items-center gap-3">
             <label className="text-sm font-medium text-neutral-dark">Filter by Department:</label>
             <select
@@ -470,13 +461,34 @@ export default function HospitalPatientsPage() {
               onChange={(e) => setSelectedDoctor(e.target.value)}
               className="rounded-lg border border-neutral-border px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white"
             >
-              <option value="all">All Doctors ({filteredDoctorsByDept.length})</option>
-              {filteredDoctorsByDept.map(group => (
-                <option key={group.doctorId} value={group.doctorId}>
-                  {group.doctorName} ({group.patients.length} patients)
+              <option value="all">All Doctors ({uniqueDoctorsForFilter.length})</option>
+              {uniqueDoctorsForFilter.map(doc => (
+                <option key={doc.doctorId} value={doc.doctorId}>
+                  {doc.doctorName}
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-medium text-neutral-dark">Filter by Date:</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="rounded-lg border border-neutral-border px-3 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white"
+              />
+              {selectedDate && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate('')}
+                  className="text-xs text-primary hover:text-primary-dark font-semibold transition"
+                >
+                  Clear Date
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </Card>
@@ -493,14 +505,15 @@ export default function HospitalPatientsPage() {
       ) : (
         <div className="space-y-4">
           {filteredGroups.map((group) => {
-            const isExpanded = expandedDoctors.has(group.doctorId);
+            const compositeKey = `${group.doctorId}|${group.dateStr}`;
+            const isExpanded = expandedDoctors.has(compositeKey);
             
             return (
-              <Card key={group.doctorId} className="overflow-hidden">
+              <Card key={compositeKey} className="overflow-hidden">
                 {/* Doctor Header */}
                 <div
                   className="flex items-center justify-between bg-neutral-light p-4 cursor-pointer hover:bg-neutral-light/80 transition"
-                  onClick={() => toggleDoctor(group.doctorId)}
+                  onClick={() => toggleDoctor(compositeKey)}
                 >
                   <div className="flex items-center gap-3">
                     <button className="text-neutral-gray">
@@ -509,7 +522,7 @@ export default function HospitalPatientsPage() {
                     <div>
                       <h3 className="font-bold text-neutral-dark flex items-center gap-2">
                         <FiUser size={18} />
-                        {group.doctorName}
+                        {group.doctorName} <span className="text-sm font-normal text-neutral-gray">— {formatDateLabel(group.dateStr)}</span>
                       </h3>
                       <p className="text-sm text-neutral-gray mt-0.5">
                         {group.patients.length} patient{group.patients.length !== 1 ? 's' : ''} • {group.totalAppointments} appointment{group.totalAppointments !== 1 ? 's' : ''}
@@ -520,11 +533,12 @@ export default function HospitalPatientsPage() {
                     variant="secondary"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handlePrint(group.doctorId);
+                      handlePrint(group.doctorId, group.dateStr);
                     }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold"
                   >
-                    <FiPrinter className="mr-2" />
-                    Print
+                    <FiFileText size={12} className="mr-1" />
+                    Sheet {formatDateLabel(group.dateStr)}
                   </Button>
                 </div>
 

@@ -136,7 +136,7 @@ function Template2MedicationsContent() {
                 ? Math.floor((p as any).stock)
                 : undefined
             return {
-              id: `user-${idx}`,
+              id: (p as any).id?.toString() || `user-${idx}`,
               name: p.name,
               category: p.category || 'General',
               description: p.description,
@@ -481,7 +481,7 @@ function Template2MedicationsContent() {
       <footer className="border-t border-neutral-border mt-16 bg-white/70">
         <div className="mx-auto max-w-7xl px-4 py-8 text-sm text-neutral-gray flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
           <div>© {new Date().getFullYear()} {brand.name || (isDemo ? 'Classic Pharmacy' : 'Pharmacy')}. All rights reserved.</div>
-          <div className="opacity-80">Classic Pharmacy</div>
+          <div className="opacity-80">This website done by Medify</div>
         </div>
       </footer>
 

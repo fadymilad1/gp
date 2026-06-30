@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import Link from 'next/link';
 
 interface DepartmentsCarouselProps {
   departments: any[];
@@ -151,7 +152,7 @@ export default function DepartmentsCarousel({ departments }: DepartmentsCarousel
                 </p>
 
                 {/* Meta Row */}
-                <div className="flex flex-wrap items-center gap-2 mb-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 mt-auto mb-2">
                   {/* Doctor Count */}
                   <span
                     className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border"
@@ -176,6 +177,20 @@ export default function DepartmentsCarousel({ departments }: DepartmentsCarousel
                     </svg>
                     {doctorCount} {doctorCount === 1 ? 'Doctor' : 'Doctors'}
                   </span>
+
+                  {doctorCount > 0 && (
+                    <Link
+                      href={`/departments/${dept.id}`}
+                      className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold transition-opacity hover:opacity-90 shadow-sm"
+                      style={{
+                        background: 'var(--hospital-btn-primary)',
+                        color: 'var(--hospital-btn-primary-text)',
+                      }}
+                    >
+                      See Doctors
+                      <FiChevronRight size={12} />
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>

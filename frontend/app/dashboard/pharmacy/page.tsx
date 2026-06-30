@@ -121,10 +121,9 @@ export default function PharmacyDashboardPage() {
 
   const isReadyToPublish = useMemo(() => {
     const hasTemplate = Boolean(profile?.template_id)
-    const hasProducts = productStats.total > 0
     const hasInfo = Boolean((businessInfo?.name || '').trim())
-    return hasTemplate && hasProducts && hasInfo && !profile?.is_published
-  }, [businessInfo?.name, productStats.total, profile?.is_published, profile?.template_id])
+    return hasTemplate && hasInfo && !profile?.is_published
+  }, [businessInfo?.name, profile?.is_published, profile?.template_id])
 
   const handlePublish = async () => {
     if (isPublishing) return

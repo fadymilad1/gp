@@ -175,7 +175,17 @@ export const apiRequest = async <T>(
       }
     }
 
-    const data = await response.json()
+    let data: any = null
+    if (response.status !== 204) {
+      const text = await response.text()
+      if (text.trim()) {
+        try {
+          data = JSON.parse(text)
+        } catch {
+          data = text
+        }
+      }
+    }
 
     if (!response.ok) {
       return {

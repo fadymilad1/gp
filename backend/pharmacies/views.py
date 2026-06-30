@@ -51,6 +51,21 @@ logger = logging.getLogger(__name__)
 user_model = get_user_model()
 
 
+def _maybe_push_to_google_sheet(pharmacy):
+    if not pharmacy or not pharmacy.google_sheet_sync_enabled or not pharmacy.google_sheet_url:
+        return {'pushed': False, 'reason': 'not_connected'}
+
+    try:
+        products = Product.objects.filter(pharmacy=pharmacy).order_by('category', 'name', 'id')
+        push_products_to_connected_sheet(pharmacy, products)
+        pharmacy.google_sheet_last_pushed_at = timezone.now()
+        pharmacy.save(update_fields=['google_sheet_last_pushed_at', 'updated_at'])
+        return {'pushed': True, 'pushed_at': pharmacy.google_sheet_last_pushed_at}
+    except GoogleSheetWriteError as exc:
+        logger.warning('Google Sheet push failed for pharmacy %s: %s', pharmacy.id, exc)
+        return {'pushed': False, 'error': str(exc)}
+
+
 def _generate_order_number() -> str:
     return f"ORD-{timezone.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:8].upper()}"
 
@@ -149,6 +164,8 @@ def _coerce_price_decimal(raw_value: str) -> Decimal:
 
     if parsed < 0:
         raise ValueError('price cannot be negative')
+    if parsed >= Decimal('100000000'):
+        raise ValueError('price cannot exceed 99,999,999.99')
 
     return parsed
 
@@ -181,6 +198,9 @@ def _coerce_stock_integer(raw_value: str) -> int:
 
     if parsed != parsed.to_integral_value():
         raise ValueError('stock must be an integer')
+
+    if parsed > 2147483647:
+        raise ValueError('stock cannot exceed 2,147,483,647')
 
     stock = int(parsed)
     if stock < 0:
@@ -817,18 +837,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         return Response(result, status=response_status)
 
     def _maybe_push_to_google_sheet(self, pharmacy):
-        if not pharmacy or not pharmacy.google_sheet_sync_enabled or not pharmacy.google_sheet_url:
-            return {'pushed': False, 'reason': 'not_connected'}
-
-        try:
-            products = Product.objects.filter(pharmacy=pharmacy).order_by('category', 'name', 'id')
-            push_products_to_connected_sheet(pharmacy, products)
-            pharmacy.google_sheet_last_pushed_at = timezone.now()
-            pharmacy.save(update_fields=['google_sheet_last_pushed_at', 'updated_at'])
-            return {'pushed': True, 'pushed_at': pharmacy.google_sheet_last_pushed_at}
-        except GoogleSheetWriteError as exc:
-            logger.warning('Google Sheet push failed for pharmacy %s: %s', pharmacy.id, exc)
-            return {'pushed': False, 'error': str(exc)}
+        return _maybe_push_to_google_sheet(pharmacy)
 
     def _should_sync_google_sheet(self, pharmacy, force: bool = False) -> bool:
         if not pharmacy.google_sheet_sync_enabled or not pharmacy.google_sheet_url:
@@ -875,10 +884,9 @@ class ProductViewSet(viewsets.ModelViewSet):
             'failed_rows': result.get('failed_rows', []),
             'synced_at': pharmacy.google_sheet_last_synced_at,
         }
-
     def list(self, request, *args, **kwargs):
         pharmacy, website_setup = self._get_or_create_pharmacy()
-        force_sync = request.query_params.get('sync') in {'1', 'true', 'yes'}
+        force_sync = request.query_params.get('force') in {'1', 'true', 'yes'}
         if pharmacy.google_sheet_sync_enabled and pharmacy.google_sheet_url:
             self._sync_from_google_sheet(request, pharmacy, website_setup, force=force_sync)
         return super().list(request, *args, **kwargs)
@@ -1317,6 +1325,8 @@ class PharmacyOrderViewSet(viewsets.ReadOnlyModelViewSet):
             order.status_updated_at = timezone.now()
             order.save(update_fields=['subtotal', 'total', 'status_updated_at', 'updated_at'])
 
+        _maybe_push_to_google_sheet(pharmacy)
+
         return Response(
             {
                 'message': 'Order placed successfully.',
@@ -1332,11 +1342,25 @@ class PharmacyOrderViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = PharmacyOrderStatusUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        order.status = serializer.validated_data['status']
-        if order.status == PharmacyOrder.Status.COMPLETED:
-            order.payment_status = PharmacyOrder.PaymentStatus.PAID
-        order.status_updated_at = timezone.now()
-        order.save(update_fields=['status', 'payment_status', 'status_updated_at', 'updated_at'])
+        new_status = serializer.validated_data['status']
+        old_status = order.status
+
+        with transaction.atomic():
+            if new_status == PharmacyOrder.Status.CANCELLED and old_status != PharmacyOrder.Status.CANCELLED:
+                for item in order.items.all():
+                    if item.product:
+                        product = Product.objects.select_for_update().get(id=item.product.id)
+                        product.stock += item.quantity
+                        product.save()
+
+            order.status = new_status
+            if order.status == PharmacyOrder.Status.COMPLETED:
+                order.payment_status = PharmacyOrder.PaymentStatus.PAID
+            order.status_updated_at = timezone.now()
+            order.save(update_fields=['status', 'payment_status', 'status_updated_at', 'updated_at'])
+
+        if new_status == PharmacyOrder.Status.CANCELLED and old_status != PharmacyOrder.Status.CANCELLED:
+            _maybe_push_to_google_sheet(order.pharmacy)
 
         return Response(PharmacyOrderSerializer(order, context={'request': request}).data)
 

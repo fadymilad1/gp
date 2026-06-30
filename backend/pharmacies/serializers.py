@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from decimal import Decimal
 import json
 from django.core.validators import URLValidator
 from pharmacies.models import Pharmacy, PharmacyOrder, PharmacyOrderItem, PharmacyTemplatePurchase, Product
@@ -129,11 +130,15 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
     def validate_price(self, value):
         if value < 0:
             raise serializers.ValidationError("Price cannot be negative")
+        if value >= Decimal('100000000'):
+            raise serializers.ValidationError("Price cannot exceed 99,999,999.99")
         return value
     
     def validate_stock(self, value):
         if value < 0:
             raise serializers.ValidationError("Stock cannot be negative")
+        if value > 2147483647:
+            raise serializers.ValidationError("Stock cannot exceed 2,147,483,647")
         return value
 
     def validate_category(self, value):

@@ -5,12 +5,14 @@ import Link from 'next/link'
 import React, { useEffect, useMemo, useState, Suspense } from 'react'
 import { FiClock, FiMapPin, FiPhoneCall, FiShoppingBag, FiShield, FiTruck, FiCheck, FiArrowRight, FiShoppingCart } from 'react-icons/fi'
 import { AIChatbot } from '@/components/pharmacy/AIChatbot'
+
 import { BrandLogo } from '@/components/pharmacy/BrandLogo'
 import { ProductImage } from '@/components/pharmacy/ProductImage'
 import { useSearchParams } from 'next/navigation'
 import { getSiteItem, setSiteItem, removeSiteItem, getStoredUser, setSiteOwnerId } from '@/lib/storage'
 import { addPharmacyInboxMessage } from '@/lib/pharmacyInbox'
 import { getStoredPharmacyThemeSettings, isSectionEnabled } from '@/lib/pharmacyTheme'
+import { resolveOpenHours } from '@/lib/pharmacyTemplateRuntime'
 
 type PharmacySetup = {
   phone?: string
@@ -85,8 +87,7 @@ function PharmacyTemplate1PageContent() {
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo | null>(null)
   const [cart, setCart] = useState<CartItem[]>([])
   const [addedToCart, setAddedToCart] = useState<Set<string>>(new Set())
-  const [quickMessage, setQuickMessage] = useState({ name: '', contact: '', message: '' })
-  const [quickMessageSent, setQuickMessageSent] = useState(false)
+
 
   useEffect(() => {
     if (ownerId) {
@@ -95,13 +96,15 @@ function PharmacyTemplate1PageContent() {
   }, [ownerId])
 
   useEffect(() => {
-    if (isDemo) return
     const user = getStoredUser()
     if (ownerId) setSiteOwnerId(ownerId)
     else if (user?.id) setSiteOwnerId(user.id)
-    setPharmacySetup(safeJsonParse<PharmacySetup>(getSiteItem('pharmacySetup')))
-    setBusinessInfo(safeJsonParse<BusinessInfo>(getSiteItem('businessInfo')))
-  }, [isDemo, ownerId])
+    
+    const localSetup = getSiteItem('pharmacySetup')
+    const localInfo = getSiteItem('businessInfo')
+    if (localSetup) setPharmacySetup(safeJsonParse<PharmacySetup>(localSetup))
+    if (localInfo) setBusinessInfo(safeJsonParse<BusinessInfo>(localInfo))
+  }, [ownerId])
 
   useEffect(() => {
     const raw = isDemo ? typeof window !== 'undefined' ? localStorage.getItem(cartKey) : null : getSiteItem(cartKey)
@@ -125,7 +128,8 @@ function PharmacyTemplate1PageContent() {
   }, [cart, cartKey, isDemo])
 
   const brand = useMemo(() => {
-    if (isDemo) {
+    const hasCustomInfo = Boolean(businessInfo?.name || pharmacySetup?.phone || pharmacySetup?.address)
+    if (isDemo && !hasCustomInfo) {
       return {
         name: 'Modern Pharmacy',
         logo: '/mod logo.png',
@@ -135,23 +139,20 @@ function PharmacyTemplate1PageContent() {
         openHours: 'Mon–Fri 09:00–17:00',
       }
     }
-    const name = businessInfo?.name?.trim() || ''
-    const logo = businessInfo?.logo || null
-    const about = businessInfo?.about?.trim() || ''
-    const phone = businessInfo?.contactPhone || pharmacySetup?.phone || ''
-    const address = businessInfo?.address || pharmacySetup?.address || ''
+    const name = businessInfo?.name?.trim() || (isDemo ? 'Modern Pharmacy' : '')
+    const logo = businessInfo?.logo || (isDemo ? '/mod logo.png' : null)
+    const about = businessInfo?.about?.trim() || (isDemo ? 'Your trusted neighborhood pharmacy for prescriptions, wellness products, and friendly advice.' : '')
+    const phone = businessInfo?.contactPhone || pharmacySetup?.phone || (isDemo ? '+1 (555) 123-4567' : '')
+    const address = businessInfo?.address || pharmacySetup?.address || (isDemo ? '123 Main Street, City' : '')
     
-    const hours = businessInfo?.workingHours
-    let openHours = ''
-    if (hours?.monday?.closed) openHours = 'Hours vary'
-    else if (hours?.monday?.open && hours?.monday?.close) openHours = `Mon ${hours.monday.open}–${hours.monday.close}`
+    const openHours = businessInfo ? resolveOpenHours(businessInfo) || (isDemo ? 'Mon–Fri 09:00–17:00' : '') : (isDemo ? 'Mon–Fri 09:00–17:00' : '')
     
     return { name, logo, about, phone, address, openHours }
   }, [businessInfo, pharmacySetup, isDemo])
 
   const themeSettings = useMemo(
-    () => (isDemo ? null : getStoredPharmacyThemeSettings()),
-    [isDemo],
+    () => getStoredPharmacyThemeSettings(),
+    [],
   )
 
   const showHero = isDemo || !themeSettings || isSectionEnabled(themeSettings, 'hero')
@@ -161,7 +162,8 @@ function PharmacyTemplate1PageContent() {
   const showContactInfo = isDemo || !themeSettings || isSectionEnabled(themeSettings, 'contactInfo')
 
   const productCatalog = useMemo(() => {
-    if (isDemo) {
+    const list = pharmacySetup?.products?.filter((p) => p.name?.trim()) ?? []
+    if (isDemo && list.length === 0) {
       return [
         { id: '1', name: 'Ibuprofen 200mg', category: 'Pain Relief', description: 'Fast pain relief for headaches & fever.', price: '$9.99', inStock: true, stock: 35, imageUrl: '/template-1.jpg' },
         { id: '2', name: 'Vitamin C 1000mg', category: 'Vitamins', description: 'Daily immune support.', price: '$12.50', inStock: true, stock: 48, imageUrl: '/template-2.jpg' },
@@ -172,9 +174,8 @@ function PharmacyTemplate1PageContent() {
       ]
     }
     
-    const list = pharmacySetup?.products?.filter((p) => p.name?.trim()) ?? []
     return list.map((p, idx) => ({
-      id: `user-${idx}`,
+      id: String((p as any).id || `user-${idx}`),
       name: p.name,
       category: p.category || 'General',
       description: p.description,
@@ -217,27 +218,7 @@ function PharmacyTemplate1PageContent() {
     })
   }
 
-  const handleQuickMessageSubmit = (event: React.FormEvent) => {
-    event.preventDefault()
-    if (!quickMessage.name.trim() || !quickMessage.contact.trim() || !quickMessage.message.trim()) {
-      return
-    }
 
-    addPharmacyInboxMessage(
-      {
-        type: 'refill',
-        name: quickMessage.name,
-        contact: quickMessage.contact,
-        message: quickMessage.message,
-        source: 'template1-home',
-      },
-      ownerId || undefined,
-    )
-
-    setQuickMessage({ name: '', contact: '', message: '' })
-    setQuickMessageSent(true)
-    window.setTimeout(() => setQuickMessageSent(false), 2500)
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-light/30 via-white to-primary-light/10">
@@ -455,9 +436,9 @@ function PharmacyTemplate1PageContent() {
             <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary to-primary-dark text-white flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
               <FiClock size={24} />
             </div>
-            <h3 className="mt-5 font-bold text-lg text-neutral-dark">Refills in Minutes</h3>
+            <h3 className="mt-5 font-bold text-lg text-neutral-dark">Professional Advice</h3>
             <p className="mt-3 text-sm text-neutral-gray leading-relaxed">
-              Quick prescription refills through our online portal or mobile app.
+              Friendly pharmacist advice, consultations, and answers to your medication questions.
             </p>
           </div>
         </div>
@@ -582,11 +563,11 @@ function PharmacyTemplate1PageContent() {
             <div className="md:col-span-2">
               <h3 className="text-2xl font-bold text-neutral-dark">Need help choosing the right product?</h3>
               <p className="mt-2 text-neutral-gray">
-                Use our AI assistant for symptom-aware guidance, or contact the pharmacy team for refill and availability support.
+                Use our AI assistant for symptom-aware guidance, or contact the pharmacy team for support and availability inquiries.
               </p>
               <div className="mt-4 flex flex-wrap gap-3 text-sm text-neutral-dark">
                 <span className="px-3 py-1 rounded-full bg-white border border-neutral-border">Medication guidance</span>
-                <span className="px-3 py-1 rounded-full bg-white border border-neutral-border">Refill support</span>
+                <span className="px-3 py-1 rounded-full bg-white border border-neutral-border">Availability questions</span>
                 <span className="px-3 py-1 rounded-full bg-white border border-neutral-border">Specialty recommendations</span>
               </div>
             </div>
@@ -613,82 +594,47 @@ function PharmacyTemplate1PageContent() {
 
       {/* Contact */}
       {showContactInfo ? (
-        <section id="contact" className="mx-auto max-w-6xl px-4 py-16 bg-gradient-to-b from-white to-neutral-light/30">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="rounded-2xl border border-neutral-border p-6">
-            <h2 className="text-2xl font-bold text-neutral-dark">Contact & refills</h2>
-            <p className="mt-2 text-neutral-gray">
-              Contact us for refill support, availability questions, and order assistance.
+        <section id="contact" className="mx-auto max-w-2xl px-4 py-16">
+          <div className="rounded-2xl border border-neutral-border p-8 bg-white shadow-lg text-center">
+            <h2 className="text-3xl font-bold text-neutral-dark">Contact Us</h2>
+            <p className="mt-3 text-neutral-gray max-w-md mx-auto">
+              Contact us for availability questions, product inquiries, and general assistance.
             </p>
-            <div className="mt-6 space-y-3 text-sm">
+            <div className="mt-8 flex flex-col items-center gap-4 text-base">
               {brand.phone && (
-                <div className="flex items-center gap-2 text-neutral-dark">
+                <div className="flex items-center gap-3 text-neutral-dark bg-neutral-light/50 px-5 py-3 rounded-xl border border-neutral-border/40 w-full max-w-sm justify-center">
                   <FiPhoneCall className="text-primary" />
-                  <a className="hover:underline" href={`tel:${brand.phone}`}>{brand.phone}</a>
+                  <a className="hover:underline font-semibold" href={`tel:${brand.phone}`}>{brand.phone}</a>
                 </div>
               )}
               {brand.address && (
-                <div className="flex items-center gap-2 text-neutral-dark">
+                <div className="flex items-center gap-3 text-neutral-dark bg-neutral-light/50 px-5 py-3 rounded-xl border border-neutral-border/40 w-full max-w-sm justify-center">
                   <FiMapPin className="text-primary" />
-                  <span>{brand.address}</span>
+                  <span className="font-medium">{brand.address}</span>
+                </div>
+              )}
+              {brand.openHours && (
+                <div className="flex items-center gap-3 text-neutral-dark bg-neutral-light/50 px-5 py-3 rounded-xl border border-neutral-border/40 w-full max-w-sm justify-center">
+                  <FiClock className="text-primary" />
+                  <span className="font-medium">{brand.openHours}</span>
                 </div>
               )}
             </div>
 
-            <div className="mt-6 rounded-xl bg-neutral-light p-4 text-xs text-neutral-gray">
-              Need quick help? Send us a message and our pharmacy team will respond shortly.
+            <div className="mt-8 rounded-xl bg-neutral-light p-5 text-sm text-neutral-gray max-w-md mx-auto">
+              Have any questions? Give us a call or visit our physical location during working hours.
             </div>
           </div>
-
-          <div className="rounded-2xl border border-neutral-border p-6">
-            <h3 className="font-semibold text-neutral-dark">Quick message</h3>
-            <p className="mt-1 text-sm text-neutral-gray">Send refill questions directly to the pharmacy owner dashboard.</p>
-            <form className="mt-4 space-y-3" onSubmit={handleQuickMessageSubmit}>
-              <input
-                className="w-full px-4 py-2 border border-neutral-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                placeholder="Full name"
-                value={quickMessage.name}
-                onChange={(event) => setQuickMessage((prev) => ({ ...prev, name: event.target.value }))}
-                required
-              />
-              <input
-                className="w-full px-4 py-2 border border-neutral-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                placeholder="Phone or email"
-                value={quickMessage.contact}
-                onChange={(event) => setQuickMessage((prev) => ({ ...prev, contact: event.target.value }))}
-                required
-              />
-              <textarea
-                className="w-full px-4 py-2 border border-neutral-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                rows={5}
-                placeholder="Message / Refill request details..."
-                value={quickMessage.message}
-                onChange={(event) => setQuickMessage((prev) => ({ ...prev, message: event.target.value }))}
-                required
-              />
-              <button
-                className="w-full px-6 py-3 rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors"
-                type="submit"
-              >
-                Send
-              </button>
-              {quickMessageSent ? (
-                <p className="text-sm text-success">Message sent to pharmacy owner inbox.</p>
-              ) : null}
-            </form>
-          </div>
-        </div>
         </section>
       ) : null}
 
       <footer className="border-t border-neutral-border bg-gradient-to-b from-white to-neutral-light/30">
         <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-neutral-gray flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
           <div>© {new Date().getFullYear()} {brand.name || (isDemo ? 'Modern Pharmacy' : 'Pharmacy')}. All rights reserved.</div>
-          <div className="opacity-80">Modern Pharmacy</div>
+          <div className="opacity-80">This website done by Medify</div>
         </div>
       </footer>
 
-      {/* AI Chatbot */}
       <AIChatbot pharmacyName={brand.name || (isDemo ? 'Modern Pharmacy' : 'Pharmacy')} pharmacyPhone={brand.phone || ''} />
     </div>
   )

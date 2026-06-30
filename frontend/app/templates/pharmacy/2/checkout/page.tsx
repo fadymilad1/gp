@@ -17,6 +17,7 @@ type Product = {
   description?: string
   price: string
   inStock: boolean
+  stock?: number
 }
 
 type CartItem = {
@@ -181,6 +182,10 @@ function Template2CheckoutContent() {
       if (!item) return prev
 
       const newQuantity = item.quantity + delta
+      if (delta > 0 && item.product.stock !== undefined && newQuantity > item.product.stock) {
+        alert(`Sorry, only ${item.product.stock} units of ${item.product.name} are available in stock.`)
+        return prev
+      }
       const updated =
         newQuantity <= 0
           ? prev.filter((i) => i.product.id !== productId)

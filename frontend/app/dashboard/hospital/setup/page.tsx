@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { Toggle } from '@/components/ui/Toggle'
 import { PaymentModal } from '@/components/payment/PaymentModal'
-import { FiDollarSign, FiCheckCircle, FiZap } from 'react-icons/fi'
+import { FiDollarSign, FiCheckCircle, FiZap, FiShield, FiClock } from 'react-icons/fi'
 import { getScopedItem, setScopedItem } from '@/lib/storage'
 import { websiteSetupApiV2 } from '@/lib/api'
 import {
@@ -294,91 +294,126 @@ function HospitalSetupContent() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold text-neutral-dark mb-2">Hospital Website Setup</h1>
-          <p className="text-neutral-gray">
-            Select the features you want on your hospital website. You can manage your doctors and
-            departments from the{' '}
-            <a href="/dashboard/hospital/doctors" className="text-primary underline">
-              Doctors tab
-            </a>
-            .
+      <section className="overflow-hidden rounded-3xl border border-primary/20 bg-gradient-to-br from-primary-light via-white to-neutral-light p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-neutral-dark">Hospital Website Setup</h1>
+            <p className="text-neutral-gray mt-1">
+              Select the features you want on your hospital website. You can manage your doctors and departments from the{' '}
+              <a href="/dashboard/hospital/doctors" className="text-primary font-semibold underline hover:text-primary-dark transition-colors">
+                Doctors tab
+              </a>
+              .
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {!subLoading && isActive && (
+              <div className={`shrink-0 flex items-center gap-1.5 rounded-xl border px-4 py-2 text-sm font-semibold ${PLAN_BADGE_CLASSES[planType]}`}>
+                <FiCheckCircle size={14} />
+                {PLAN_LABELS[planType]} Plan Active
+              </div>
+            )}
+            {!subLoading && !isActive && (
+              <div className="shrink-0 flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700">
+                <FiZap size={14} />
+                No Active Plan
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="mt-4 grid gap-2 text-xs sm:grid-cols-3">
+          <p className="inline-flex items-center gap-2 rounded-lg border border-primary/20 bg-white/80 px-3 py-2 text-neutral-dark">
+            <FiShield className="text-primary" /> Safe publish workflow
+          </p>
+          <p className="inline-flex items-center gap-2 rounded-lg border border-primary/20 bg-white/80 px-3 py-2 text-neutral-dark">
+            <FiClock className="text-primary" /> Guided step sequence
+          </p>
+          <p className="inline-flex items-center gap-2 rounded-lg border border-primary/20 bg-white/80 px-3 py-2 text-neutral-dark">
+            <FiCheckCircle className="text-primary" /> Progress saved continuously
           </p>
         </div>
-        {/* Current active plan badge */}
-        {!subLoading && isActive && (
-          <div className={`shrink-0 flex items-center gap-1.5 rounded-xl border px-4 py-2 text-sm font-semibold ${PLAN_BADGE_CLASSES[planType]}`}>
-            <FiCheckCircle size={14} />
-            {PLAN_LABELS[planType]} Plan Active
-          </div>
-        )}
-        {!subLoading && !isActive && (
-          <div className="shrink-0 flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700">
-            <FiZap size={14} />
-            No Active Plan
-          </div>
-        )}
-      </div>
+      </section>
 
       <form onSubmit={handleSubmit}>
         <div className="space-y-6">
           {/* Plans Section */}
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-neutral-dark">Plans</h2>
-              <div className="flex items-center gap-2 bg-primary-light px-4 py-2 rounded-lg">
-                <FiDollarSign className="text-primary" size={20} />
-                <div className="text-right">
-                  <p className="text-lg font-bold text-primary">${totalPrice}/mo</p>
-                </div>
-              </div>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              {PLANS.map((plan) => {
-                const isCurrentActive = isActive && activePlanKey === plan.key
-                const isPlanLocked = hasLockedSubscription && !isCurrentActive
-                return (
-                  <button
-                    key={plan.key}
-                    type="button"
-                    disabled={isPlanLocked}
-                    onClick={() => {
-                      if (isPlanLocked) return
-                      setSubscriptionError(null)
-                      setFormData((prev) => ({ ...prev, plan: plan.key }))
-                    }}
-                    className={`relative text-left p-4 border rounded-lg transition-shadow ${
-                      formData.plan === plan.key
-                        ? 'border-primary shadow-sm'
-                        : 'border-neutral-border hover:shadow-sm'
-                    } ${isPlanLocked ? 'cursor-not-allowed opacity-60' : ''}`}
-                  >
-                    {/* "Current plan" ribbon */}
-                    {isCurrentActive && (
-                      <span className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-green-100 border border-green-200 px-2 py-0.5 text-[10px] font-bold text-green-700">
-                        <FiCheckCircle size={10} /> Current
-                      </span>
-                    )}
-                    <div className="flex items-center justify-between pr-16">
-                      <div>
-                        <p className="text-lg font-semibold text-neutral-dark">{plan.label}</p>
-                        <p className="text-sm text-neutral-gray">${plan.monthlyPrice}/month</p>
-                      </div>
-                      <div className={`h-3 w-3 rounded-full ${formData.plan === plan.key ? 'bg-primary' : 'bg-neutral-border'}`} />
+          <div className="grid gap-6 md:grid-cols-2">
+            {PLANS.map((plan) => {
+              const isSelected = formData.plan === plan.key
+              const isCurrentActive = isActive && activePlanKey === plan.key
+              const isPlanLocked = hasLockedSubscription && !isCurrentActive
+              const isPremium = plan.key === 'standard'
+
+              return (
+                <div
+                  key={plan.key}
+                  onClick={() => {
+                    if (isPlanLocked) return
+                    setSubscriptionError(null)
+                    setFormData((prev) => ({ ...prev, plan: plan.key }))
+                  }}
+                  className={`relative flex flex-col justify-between p-8 rounded-3xl border bg-white cursor-pointer transition-all duration-300 ${
+                    isSelected
+                      ? 'border-primary ring-4 ring-primary/10 shadow-lg scale-[1.01]'
+                      : 'border-neutral-border hover:border-primary/50 hover:shadow-md'
+                  } ${isPlanLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {isPremium && (
+                    <div className="absolute -top-3.5 left-8 bg-gradient-to-r from-primary to-ai text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm tracking-wide uppercase">
+                      Recommended
                     </div>
-                    <ul className="mt-4 space-y-1 text-sm text-neutral-gray">
-                      {plan.features.map((f) => (
-                        <li key={f}>• {f}</li>
+                  )}
+
+                  {isCurrentActive && (
+                    <span className="absolute top-4 right-4 flex items-center gap-1 rounded-full bg-success-light border border-success/20 px-3 py-1 text-xs font-bold text-success">
+                      <FiCheckCircle size={12} /> Active Plan
+                    </span>
+                  )}
+
+                  <div>
+                    <div className="flex items-center justify-between mt-2">
+                      <h3 className="text-2xl font-bold text-neutral-dark">{plan.label}</h3>
+                      <input
+                        type="radio"
+                        name="plan"
+                        checked={isSelected}
+                        disabled={isPlanLocked}
+                        readOnly
+                        className="h-5 w-5 text-primary focus:ring-primary border-neutral-border cursor-pointer shrink-0"
+                      />
+                    </div>
+
+                    <div className="mt-5 mb-6">
+                      <span className="text-4xl font-extrabold text-neutral-dark">${plan.monthlyPrice}</span>
+                      <span className="text-neutral-gray text-sm font-medium">/month</span>
+                    </div>
+
+                    <ul className="space-y-3 border-t border-neutral-border/50 pt-6">
+                      {plan.features.map((feature, idx) => (
+                        <li key={idx} className="flex items-start gap-3 text-neutral-dark font-medium text-sm">
+                          <FiCheckCircle className="text-success shrink-0 mt-0.5" size={16} />
+                          <span>{feature}</span>
+                        </li>
                       ))}
                     </ul>
-                  </button>
-                )
-              })}
-            </div>
-          </Card>
+                  </div>
 
-          {/* Actions */}
+                  <div className="mt-8 pt-4 border-t border-neutral-border/40">
+                    <Button
+                      type="button"
+                      variant={isSelected ? 'primary' : 'secondary'}
+                      className="w-full py-3 text-sm font-semibold"
+                      disabled={isPlanLocked}
+                    >
+                      {isSelected ? 'Selected' : 'Choose Plan'}
+                    </Button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Messages */}
           {blockMessage && !subscriptionError && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               {blockMessage}
@@ -389,30 +424,50 @@ function HospitalSetupContent() {
               {subscriptionError}
             </div>
           )}
-          <div className="flex flex-wrap justify-end gap-4">
-            {(isActive || hasPendingSubscription) && (
-              <Button
-                variant="secondary"
-                type="button"
-                onClick={handleCancelSubscription}
-                disabled={cancelling}
-              >
-                {cancelling ? 'Cancelling...' : 'Cancel Current Plan'}
-              </Button>
-            )}
-            <Button variant="secondary" type="button" onClick={handleSaveDraft}>
-              Save Draft
-            </Button>
-            <Button
-              variant="primary"
-              type="submit"
-              formNoValidate
-              disabled={activating || hasLockedSubscription}
-            >
-              <FiDollarSign className="mr-2" />
-              {activating ? 'Activating...' : `Continue to Payment ($${totalPrice})`}
-            </Button>
-          </div>
+
+          {/* Actions & Summary */}
+          <Card className="p-6 bg-neutral-light border border-neutral-border/60">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-neutral-gray">Selected Plan Billing</p>
+                <div className="flex items-baseline gap-1 mt-1">
+                  <span className="text-xl font-bold text-neutral-dark">{formData.plan === 'standard' ? 'Premium Plan' : 'Basic Plan'}</span>
+                  <span className="text-lg font-bold text-primary">— ${totalPrice}/mo</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                {(isActive || hasPendingSubscription) && (
+                  <Button
+                    variant="secondary"
+                    type="button"
+                    onClick={handleCancelSubscription}
+                    disabled={cancelling}
+                    className="px-5 py-2.5 text-sm"
+                  >
+                    {cancelling ? 'Cancelling...' : 'Cancel Current Plan'}
+                  </Button>
+                )}
+                <Button 
+                  variant="secondary" 
+                  type="button" 
+                  onClick={handleSaveDraft}
+                  className="px-5 py-2.5 text-sm"
+                >
+                  Save Draft
+                </Button>
+                <Button
+                  variant="primary"
+                  type="submit"
+                  formNoValidate
+                  disabled={activating || hasLockedSubscription}
+                  className="px-6 py-2.5 text-sm"
+                >
+                  <FiDollarSign className="mr-1.5" />
+                  {activating ? 'Activating...' : `Continue to Payment ($${totalPrice})`}
+                </Button>
+              </div>
+            </div>
+          </Card>
         </div>
       </form>
 

@@ -8,6 +8,7 @@ import { FiArrowLeft, FiClock, FiMapPin, FiPhoneCall, FiShield } from 'react-ico
 import { AIChatbot } from '@/components/pharmacy/AIChatbot'
 import { BrandLogo } from '@/components/pharmacy/BrandLogo'
 import { getSiteItem, setSiteOwnerId } from '@/lib/storage'
+import { resolveOpenHours } from '@/lib/pharmacyTemplateRuntime'
 
 type PharmacySetup = { phone?: string; address?: string }
 type BusinessInfo = { name?: string; logo?: string; contactPhone?: string; address?: string; workingHours?: Record<string, { open?: string; close?: string; closed?: boolean }> }
@@ -51,10 +52,7 @@ function ServicesContent() {
     if (isDemo) return
     const businessInfo = safeJsonParse<BusinessInfo>(getSiteItem('businessInfo'))
     const setup = safeJsonParse<PharmacySetup>(getSiteItem('pharmacySetup'))
-    const hours = businessInfo?.workingHours
-    let openHours = ''
-    if (hours?.monday?.closed) openHours = 'Hours vary'
-    else if (hours?.monday?.open && hours?.monday?.close) openHours = `Mon ${hours.monday.open}–${hours.monday.close}`
+    const openHours = businessInfo ? resolveOpenHours(businessInfo) || '' : ''
     setBrand({
       name: businessInfo?.name?.trim() || '',
       logo: businessInfo?.logo || null,
@@ -66,7 +64,7 @@ function ServicesContent() {
 
   const services = useMemo(
     () => [
-      { title: 'Prescription Support', desc: 'Refills, medication counseling, and pharmacist guidance.', tag: 'Core' },
+      { title: 'Prescription Support', desc: 'Medication counseling and expert pharmacist guidance.', tag: 'Core' },
       { title: 'Medication Review', desc: 'We help you understand interactions and usage (general guidance).', tag: 'Safety' },
       { title: 'Health & Wellness', desc: 'Vitamins, OTC products, and seasonal care recommendations.', tag: 'Wellness' },
       { title: 'Delivery & Pickup', desc: 'Choose pickup or delivery for supported products.', tag: 'Convenience' },
@@ -144,7 +142,7 @@ function ServicesContent() {
           </div>
           <h1 className="mt-4 text-3xl sm:text-4xl font-extrabold text-neutral-dark">Our Services</h1>
           <p className="mt-3 text-neutral-gray max-w-2xl">
-            A complete services overview for consultations, refills, and pharmacy care.
+            A complete services overview for consultations, counseling, and pharmacy care.
           </p>
 
           <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-5">

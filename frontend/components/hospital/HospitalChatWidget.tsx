@@ -100,6 +100,7 @@ export default function HospitalChatWidget({
   const [isOpen, setIsOpen] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [message, setMessage] = useState('')
+  const [mounted, setMounted] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: createMessageId(),
@@ -128,6 +129,10 @@ export default function HospitalChatWidget({
   const hasTenantContext = useMemo(() => {
     return Boolean(subdomain || getAuthToken())
   }, [subdomain])
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     if (isOpen && !isMinimized) {
@@ -522,7 +527,7 @@ export default function HospitalChatWidget({
 
                   {/* Timestamp */}
                   <p className={`text-xs mt-2 ${chatMessage.type === 'user' ? 'text-white/70' : 'text-slate-400'}`}>
-                    {new Date(chatMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {mounted ? new Date(chatMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                   </p>
                 </div>
               </div>

@@ -28,11 +28,7 @@ import {
   type PharmacyOrder,
   type PharmacyOrderStatus,
 } from '@/lib/pharmacyOrders'
-import {
-  getPharmacyInbox,
-  type PharmacyInboxMessage,
-  updatePharmacyInboxStatus,
-} from '@/lib/pharmacyInbox'
+
 
 type DashboardOrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled'
 
@@ -330,7 +326,7 @@ export default function OrdersPage() {
   const { showToast } = useToast()
 
   const [orders, setOrders] = useState<DashboardOrder[]>([])
-  const [messages, setMessages] = useState<PharmacyInboxMessage[]>([])
+
   const [loading, setLoading] = useState(true)
   const [userType, setUserType] = useState<'hospital' | 'pharmacy'>('pharmacy')
   const [markingViewed, setMarkingViewed] = useState(false)
@@ -390,7 +386,7 @@ export default function OrdersPage() {
     knownOrderIdsRef.current = new Set(nextOrders.map((o) => o.id))
     hasLoadedInitialOrdersRef.current = true
     setOrders(nextOrders)
-    setMessages(getPharmacyInbox())
+
     setLoading(false)
     if (shouldMarkSeen) await markAllOrdersAsViewed(true)
   }, [isHospital, markAllOrdersAsViewed, showToast])
@@ -434,10 +430,7 @@ export default function OrdersPage() {
     showToast({ type: 'success', title: 'Order deleted', message: `Order ${order.id} has been removed.` })
   }
 
-  const resolveMessage = (messageId: string) => {
-    updatePharmacyInboxStatus(messageId, 'resolved')
-    setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, status: 'resolved' } : m)))
-  }
+
 
   const filteredOrders = useMemo(
     () => filterStatus === 'all' ? orders : orders.filter((o) => o.status === filterStatus),
@@ -522,47 +515,7 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* Customer Messages */}
-      {!isHospital && (
-        <div className="space-y-3">
-          <h2 className="text-lg font-bold text-neutral-dark">Customer Messages</h2>
-          {messages.length === 0 ? (
-            <Card className="p-8 text-center">
-              <p className="text-neutral-gray text-sm">No customer messages yet.</p>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {messages.map((message) => {
-                const isResolved = message.status === 'resolved'
-                return (
-                  <Card key={message.id} className="p-5 border border-neutral-border hover:shadow-md transition-shadow">
-                    <div className="flex items-center justify-between gap-2 mb-2">
-                      <span className="text-xs font-semibold text-neutral-gray uppercase tracking-wide">
-                        {message.type === 'refill' ? 'Refill Request' : 'Contact'}
-                      </span>
-                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${isResolved ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-blue-50 text-blue-700 border border-blue-200'}`}>
-                        {isResolved ? 'Resolved' : 'New'}
-                      </span>
-                    </div>
-                    <p className="text-sm font-semibold text-neutral-dark">{message.name}</p>
-                    <p className="text-xs text-neutral-gray mt-1 break-all">{message.contact}</p>
-                    <p className="text-sm text-neutral-dark mt-3 line-clamp-4">{message.message}</p>
-                    <p className="text-xs text-neutral-gray mt-3">{new Date(message.createdAt).toLocaleString()}</p>
-                    {!isResolved && (
-                      <button
-                        className="mt-3 text-xs font-medium px-3 py-1.5 rounded-lg border border-neutral-border text-neutral-gray hover:bg-neutral-light transition-colors"
-                        onClick={() => resolveMessage(message.id)}
-                      >
-                        Mark Resolved
-                      </button>
-                    )}
-                  </Card>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
+
     </div>
   )
 }

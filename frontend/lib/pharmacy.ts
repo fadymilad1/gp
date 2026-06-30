@@ -279,12 +279,13 @@ export const pharmacyApi = {
 }
 
 export const pharmacyProductsApi = {
-  list: async (params?: { search?: string; category?: string; ordering?: string; sync?: boolean }) => {
+  list: async (params?: { search?: string; category?: string; ordering?: string; sync?: boolean; force?: boolean }) => {
     const searchParams = new URLSearchParams()
     if (params?.search) searchParams.set('search', params.search)
     if (params?.category) searchParams.set('category', params.category)
     if (params?.ordering) searchParams.set('ordering', params.ordering)
     if (params?.sync) searchParams.set('sync', '1')
+    if (params?.force) searchParams.set('force', '1')
 
     const suffix = searchParams.toString() ? `?${searchParams.toString()}` : ''
     const response = await request<PharmacyProduct[] | PaginatedResponse<PharmacyProduct>>(

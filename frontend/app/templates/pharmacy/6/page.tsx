@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
@@ -294,7 +294,7 @@ function TemplateSixHomeContent() {
                     <div className="mt-2 flex items-center justify-between">
                       <span className="text-lg font-bold text-lime-300">{product.price}</span>
                       <p className={`text-xs font-semibold ${getTemplate6StockTone(stockStatus)}`}>
-                        {outOfStock ? 'Unavailable' : `${product.stock || 0} units`}
+                        {outOfStock ? 'Unavailable' : 'Available'}
                       </p>
                     </div>
 

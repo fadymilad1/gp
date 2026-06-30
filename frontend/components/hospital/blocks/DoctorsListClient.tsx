@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   FiBriefcase,
@@ -221,8 +222,19 @@ function DoctorModal({ doc, onClose }: { doc: Doctor; onClose: () => void }) {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function DoctorsListClient({ title, subtitle, doctors, fetchError }: DoctorsListClientProps) {
+  const searchParams = useSearchParams();
   const [query, setQuery] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('All');
+
+  useEffect(() => {
+    const dept = searchParams.get('department');
+    if (dept) {
+      const exactDoc = doctors.find(doc => (doc.department_name || 'General').trim().toLowerCase() === dept.trim().toLowerCase());
+      if (exactDoc) {
+        setDepartmentFilter(exactDoc.department_name || 'General');
+      }
+    }
+  }, [searchParams, doctors]);
   const [availabilityFilter, setAvailabilityFilter] = useState<'all' | 'today'>('all');
   const [sortBy, setSortBy] = useState<'recommended' | 'experience' | 'name'>('recommended');
   const [showAll, setShowAll] = useState(false);

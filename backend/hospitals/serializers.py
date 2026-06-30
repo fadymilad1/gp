@@ -111,6 +111,7 @@ class DoctorSerializer(serializers.ModelSerializer):
     schedules = DoctorScheduleSerializer(many=True, read_only=True)
     department_name = serializers.CharField(source='department.name', read_only=True)
     image_url_resolved = serializers.SerializerMethodField()
+    specialty = serializers.CharField(required=False, allow_blank=True)
 
     def get_image_url_resolved(self, obj):
         if obj.image:
@@ -125,6 +126,14 @@ class DoctorSerializer(serializers.ModelSerializer):
         if request is not None and value.website_setup.user_id != request.user.id:
             raise serializers.ValidationError('Department does not belong to your hospital.')
         return value
+
+    def validate(self, attrs):
+        department = attrs.get('department')
+        if department:
+            attrs['specialty'] = department.name
+        elif self.instance and self.instance.department:
+            attrs['specialty'] = self.instance.department.name
+        return attrs
 
     class Meta:
         model = Doctor

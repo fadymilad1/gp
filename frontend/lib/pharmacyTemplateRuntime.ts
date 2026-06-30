@@ -108,6 +108,7 @@ type PharmacySetupLike = {
   phone?: string
   address?: string
   products?: Array<{
+    id?: string
     name?: string
     category?: string
     description?: string
@@ -171,29 +172,83 @@ export function formatPrice(value: string | number | null | undefined): string {
   return `$${safe.toFixed(2)}`
 }
 
-function resolveOpenHours(info: BusinessInfoLike): string {
+export function resolveOpenHours(info: BusinessInfoLike): string {
   const hours = info.workingHours || info.working_hours
   if (!hours) return ''
-  const monday = hours.monday
-  if (!monday) return ''
-  if (monday.closed) return 'Hours vary by day'
-  if (monday.open && monday.close) return `Mon ${monday.open}-${monday.close}`
-  return ''
+
+  const DAY_LABELS: Record<string, string> = {
+    monday: 'Mon',
+    tuesday: 'Tue',
+    wednesday: 'Wed',
+    thursday: 'Thu',
+    friday: 'Fri',
+    saturday: 'Sat',
+    sunday: 'Sun',
+  }
+
+  const order = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+  
+  const openDays = order
+    .map((day) => {
+      const v = hours[day]
+      if (!v || v.closed || !v.open || !v.close) return null
+      return {
+        day,
+        label: DAY_LABELS[day] ?? day,
+        open: v.open,
+        close: v.close,
+      }
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null)
+
+  if (openDays.length === 0) return ''
+
+  // Group consecutive days with same hours into ranges
+  const groups: { days: string[]; open: string; close: string }[] = []
+  for (const d of openDays) {
+    const last = groups[groups.length - 1]
+    if (last && last.open === d.open && last.close === d.close) {
+      last.days.push(d.label)
+    } else {
+      groups.push({ days: [d.label], open: d.open, close: d.close })
+    }
+  }
+
+  return groups
+    .map((g) => {
+      const dayRange =
+        g.days.length > 1 ? `${g.days[0]}–${g.days[g.days.length - 1]}` : g.days[0]
+      const fmt = (t: string) => {
+        const [hStr, mStr] = t.split(':')
+        const h = parseInt(hStr, 10)
+        if (isNaN(h)) return t
+        const m = mStr || '00'
+        const ampm = h >= 12 ? 'PM' : 'AM'
+        const h12 = h % 12 || 12
+        return `${h12}:${m} ${ampm}`
+      }
+      return `${dayRange}: ${fmt(g.open)} – ${fmt(g.close)}`
+    })
+    .join(' | ')
 }
 
 export function loadBrandInfo(isDemo: boolean, demoBrand: TemplateBrand): TemplateBrand {
-  if (isDemo) return demoBrand
+  const business = safeJsonParse<BusinessInfoLike>(getSiteItem('businessInfo'))
+  const setup = safeJsonParse<PharmacySetupLike>(getSiteItem('pharmacySetup'))
 
-  const business = safeJsonParse<BusinessInfoLike>(getSiteItem('businessInfo')) || {}
-  const setup = safeJsonParse<PharmacySetupLike>(getSiteItem('pharmacySetup')) || {}
+  const hasCustomInfo = Boolean(business?.name || setup?.phone || setup?.address)
+
+  if (isDemo && !hasCustomInfo) {
+    return demoBrand
+  }
 
   return {
-    name: (business.name || '').trim(),
-    logo: business.logo || business.logo_url || null,
-    about: (business.about || '').trim(),
-    phone: business.contactPhone || business.contact_phone || setup.phone || '',
-    address: business.address || setup.address || '',
-    openHours: resolveOpenHours(business),
+    name: (business?.name || (isDemo ? demoBrand.name : '')).trim(),
+    logo: business?.logo || business?.logo_url || (isDemo ? demoBrand.logo : null),
+    about: (business?.about || (isDemo ? demoBrand.about : '')).trim(),
+    phone: business?.contactPhone || business?.contact_phone || setup?.phone || (isDemo ? demoBrand.phone : ''),
+    address: business?.address || setup?.address || (isDemo ? demoBrand.address : ''),
+    openHours: business ? resolveOpenHours(business) || (isDemo ? demoBrand.openHours : '') : (isDemo ? demoBrand.openHours : ''),
   }
 }
 
@@ -229,7 +284,7 @@ function mapLocalProduct(product: NonNullable<PharmacySetupLike['products']>[num
   const imageUrl = normalizeRenderableProductImageUrl(product.imageUrl || product.image_url || '')
 
   return {
-    id: `user-${index}`,
+    id: String(product.id || `user-${index}`),
     name: productName,
     category: (product.category || 'General').trim(),
     description: product.description || '',
@@ -244,10 +299,15 @@ export async function loadTemplateProducts(
   isDemo: boolean,
   demoProducts: TemplateProduct[],
 ): Promise<TemplateProduct[]> {
-  if (isDemo) return demoProducts
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+  const setup = safeJsonParse<PharmacySetupLike>(getSiteItem('pharmacySetup'))
+  const localProducts = (setup?.products || []).filter((item) => (item.name || '').trim())
+
+  if (isDemo && !token && localProducts.length === 0) {
+    return demoProducts
+  }
 
   try {
-    const token = localStorage.getItem('access_token')
     if (token) {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
       const response = await fetch(`${apiUrl}/pharmacy/products/?sync=1`, {
@@ -273,12 +333,11 @@ export async function loadTemplateProducts(
     // Fallback to local storage below
   }
 
-  const setup = safeJsonParse<PharmacySetupLike>(getSiteItem('pharmacySetup'))
-  const localProducts = (setup?.products || [])
-    .filter((item) => (item.name || '').trim())
-    .map((item, index) => mapLocalProduct(item, index))
+  if (localProducts.length > 0) {
+    return localProducts.map((item, index) => mapLocalProduct(item, index))
+  }
 
-  return localProducts
+  return isDemo ? demoProducts : []
 }
 
 export function subscribePharmacyProductSync(onSync: () => void) {

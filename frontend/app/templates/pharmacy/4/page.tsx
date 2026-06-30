@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
@@ -15,6 +15,7 @@ import {
 } from 'react-icons/fi'
 
 import { AIChatbot } from '@/components/pharmacy/AIChatbot'
+
 import { ProductImage } from '@/components/pharmacy/ProductImage'
 import {
   buildTemplatePath,
@@ -35,7 +36,7 @@ const DEMO_BRAND: TemplateBrand = {
   name: 'AuroraCare Pharmacy',
   logo: '/template-1.jpg',
   about:
-    'A vibrant digital pharmacy experience built around fast refills, curated wellness bundles, and friendly clinical support.',
+    'A vibrant digital pharmacy experience built around curated wellness bundles and friendly clinical support.',
   phone: '+1 (555) 413-8273',
   address: '78 Emerald Avenue, San Francisco',
   openHours: 'Mon-Sun 08:00-22:00',
@@ -220,14 +221,14 @@ function TemplateFourHomeContent() {
         <section className="mx-auto grid max-w-7xl gap-8 px-4 pb-8 pt-10 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:pt-14">
           <div className="animate-soft-rise">
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary-light px-4 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-primary">
-              Refill and Wellness Hub
+              Wellness Hub
             </span>
             <h1 className="mt-4 text-4xl font-extrabold leading-tight text-slate-900 sm:text-5xl">
               A brighter online pharmacy journey with speed built in.
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-600">
               {brand.about ||
-                'Launch a high-converting storefront with dynamic categories, same-day refill requests, and transparent pricing for every product.'}
+                'Launch a high-converting storefront with dynamic categories, product availability, and transparent pricing for every product.'}
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
@@ -285,7 +286,7 @@ function TemplateFourHomeContent() {
 
               <div className="mt-6 rounded-2xl bg-gradient-to-r from-primary to-cyan-500 p-5 text-white">
                 <p className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-white/80">
-                  <FiStar /> Refill Companion
+                  <FiStar /> Pharmacy Companion
                 </p>
                 <p className="mt-2 text-lg font-semibold">Need dosage guidance or alternatives?</p>
                 <p className="mt-2 text-sm text-white/85">
@@ -385,7 +386,7 @@ function TemplateFourHomeContent() {
       <footer className="border-t border-slate-200 bg-white/70">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-6 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p>© {new Date().getFullYear()} {brand.name || 'AuroraCare Pharmacy'}. Crafted for modern pharmacy commerce.</p>
-          <p>Aurora Pharmacy Experience</p>
+          <p>This website done by Medify</p>
         </div>
       </footer>
 

@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
@@ -249,7 +249,7 @@ function TemplateFiveMedicationsContent() {
 
                       <div className="sm:text-right">
                         <p className={`text-xs font-semibold ${outOfStock ? 'text-rose-500' : 'text-emerald-600'}`}>
-                          {outOfStock ? 'Out of stock' : `${product.stock || 0} available`}
+                          {outOfStock ? 'Out of stock' : 'In Stock'}
                         </p>
                         {quantity > 0 ? (
                           <div className="mt-2 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2 py-1.5">

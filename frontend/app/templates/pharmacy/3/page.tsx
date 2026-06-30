@@ -5,7 +5,7 @@ import Link from 'next/link'
 import React, { Suspense, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { FiShoppingCart, FiPlus, FiMinus } from 'react-icons/fi'
-import { AIChatbot } from '@/components/pharmacy/AIChatbot'
+
 import { BrandLogo } from '@/components/pharmacy/BrandLogo'
 import { ProductImage } from '@/components/pharmacy/ProductImage'
 import { getSiteItem, setSiteItem, removeSiteItem, getStoredUser, setSiteOwnerId } from '@/lib/storage'
@@ -76,13 +76,15 @@ function Template3HomeContent() {
   const [cart, setCart] = useState<CartItem[]>([])
 
   useEffect(() => {
-    if (isDemo) return
     const user = getStoredUser()
     if (ownerId) setSiteOwnerId(ownerId)
     else if (user?.id) setSiteOwnerId(user.id)
-    setPharmacySetup(safeJsonParse<PharmacySetup>(getSiteItem('pharmacySetup')))
-    setBusinessInfo(safeJsonParse<BusinessInfo>(getSiteItem('businessInfo')))
-  }, [isDemo, ownerId])
+    
+    const localSetup = getSiteItem('pharmacySetup')
+    const localInfo = getSiteItem('businessInfo')
+    if (localSetup) setPharmacySetup(safeJsonParse<PharmacySetup>(localSetup))
+    if (localInfo) setBusinessInfo(safeJsonParse<BusinessInfo>(localInfo))
+  }, [ownerId])
 
   useEffect(() => {
     const raw = isDemo ? localStorage.getItem(cartKey) : getSiteItem(cartKey)
@@ -101,7 +103,8 @@ function Template3HomeContent() {
   }, [cart, cartKey, isDemo])
 
   const brand = useMemo(() => {
-    if (isDemo) {
+    const hasCustomInfo = Boolean(businessInfo?.name || pharmacySetup?.phone || pharmacySetup?.address)
+    if (isDemo && !hasCustomInfo) {
       return {
         name: 'Minimal Pharmacy',
         logo: '/mod logo.png',
@@ -114,25 +117,27 @@ function Template3HomeContent() {
     const info = businessInfo
     const setup = pharmacySetup
     return {
-      name: info?.name?.trim() || '',
-      logo: info?.logo || null,
-      about: info?.about?.trim() || '',
-      phone: info?.contactPhone || setup?.phone || '',
-      address: info?.address || setup?.address || '',
+      name: info?.name?.trim() || (isDemo ? 'Minimal Pharmacy' : ''),
+      logo: info?.logo || (isDemo ? '/mod logo.png' : null),
+      about: info?.about?.trim() || (isDemo ? 'Simple, fast, and focused on the products your patients need every day.' : ''),
+      phone: info?.contactPhone || setup?.phone || (isDemo ? '+1 (555) 345-6789' : ''),
+      address: info?.address || setup?.address || (isDemo ? '12 Simple Street, City' : ''),
     }
   }, [businessInfo, pharmacySetup, isDemo])
 
   const themeSettings = useMemo(
-    () => (isDemo ? null : getStoredPharmacyThemeSettings()),
-    [isDemo],
+    () => getStoredPharmacyThemeSettings(),
+    [],
   )
 
-  const showHero = isDemo || !themeSettings || isSectionEnabled(themeSettings, 'hero')
-  const showFeaturedProducts = isDemo || !themeSettings || isSectionEnabled(themeSettings, 'featuredProducts')
-  const showContactInfo = isDemo || !themeSettings || isSectionEnabled(themeSettings, 'contactInfo')
+  const showHero = !themeSettings || isSectionEnabled(themeSettings, 'hero')
+  const showFeaturedProducts = !themeSettings || isSectionEnabled(themeSettings, 'featuredProducts')
+  const showContactInfo = !themeSettings || isSectionEnabled(themeSettings, 'contactInfo')
 
   const products = useMemo<Product[]>(() => {
-    if (isDemo) {
+    const list = pharmacySetup?.products?.filter((p) => p.name?.trim()) ?? []
+    
+    if (isDemo && list.length === 0) {
       return [
         {
           id: 'm1',
@@ -148,7 +153,7 @@ function Template3HomeContent() {
           name: 'Vitamin C 1000mg',
           category: 'Vitamins',
           description: 'Immune support effervescent tablets.',
-          price: '$9.99',
+          price: '$12.50',
           inStock: true,
           imageUrl: '/template-2.jpg',
         },
@@ -173,10 +178,9 @@ function Template3HomeContent() {
       ].slice(0, 3)
     }
 
-    const list = pharmacySetup?.products?.filter((p) => p.name?.trim()) ?? []
     return list
       .map((p, idx) => ({
-        id: `user-${idx}`,
+        id: (p as any).id?.toString() || `user-${idx}`,
         name: p.name,
         category: p.category || 'General',
         description: p.description,
@@ -427,15 +431,11 @@ function Template3HomeContent() {
             © {new Date().getFullYear()}{' '}
             {brand.name || (isDemo ? 'Minimal Pharmacy' : 'Pharmacy')}. All rights reserved.
           </div>
-          <div className="opacity-80">Minimal Pharmacy</div>
+          <div className="opacity-80">This website done by Medify</div>
         </div>
       </footer>
 
-      <AIChatbot
-        pharmacyName={brand.name || (isDemo ? 'Minimal Pharmacy' : 'Pharmacy')}
-        pharmacyPhone={brand.phone || ''}
-        enabled={!isDemo}
-      />
+
     </div>
   )
 }

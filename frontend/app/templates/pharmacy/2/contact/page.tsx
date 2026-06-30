@@ -4,11 +4,11 @@ import Image from 'next/image'
 import Link from 'next/link'
 import React, { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { FiArrowLeft, FiClock, FiMapPin, FiPhoneCall, FiSend } from 'react-icons/fi'
+import { FiArrowLeft, FiClock, FiMapPin, FiPhoneCall } from 'react-icons/fi'
 import { AIChatbot } from '@/components/pharmacy/AIChatbot'
 import { BrandLogo } from '@/components/pharmacy/BrandLogo'
 import { getSiteItem, setSiteOwnerId } from '@/lib/storage'
-import { addPharmacyInboxMessage } from '@/lib/pharmacyInbox'
+import { resolveOpenHours } from '@/lib/pharmacyTemplateRuntime'
 
 type PharmacySetup = { phone?: string; address?: string }
 type BusinessInfo = { name?: string; logo?: string; contactPhone?: string; address?: string; workingHours?: Record<string, { open?: string; close?: string; closed?: boolean }> }
@@ -51,17 +51,11 @@ function ContactContent() {
     }
   }, [ownerId])
 
-  const [contactForm, setContactForm] = useState({ name: '', email: '', message: '' })
-  const [sent, setSent] = useState(false)
-
   useEffect(() => {
     if (isDemo) return
     const businessInfo = safeJsonParse<BusinessInfo>(getSiteItem('businessInfo'))
     const setup = safeJsonParse<PharmacySetup>(getSiteItem('pharmacySetup'))
-    const hours = businessInfo?.workingHours
-    let openHours = ''
-    if (hours?.monday?.closed) openHours = 'Hours vary'
-    else if (hours?.monday?.open && hours?.monday?.close) openHours = `Mon ${hours.monday.open}–${hours.monday.close}`
+    const openHours = businessInfo ? resolveOpenHours(businessInfo) || '' : ''
     setBrand({
       name: businessInfo?.name?.trim() || '',
       logo: businessInfo?.logo || null,
@@ -70,26 +64,6 @@ function ContactContent() {
       openHours,
     })
   }, [isDemo])
-
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault()
-    if (!contactForm.name.trim() || !contactForm.email.trim() || !contactForm.message.trim()) return
-
-    addPharmacyInboxMessage(
-      {
-        type: 'contact',
-        name: contactForm.name,
-        contact: contactForm.email,
-        message: contactForm.message,
-        source: 'template2-contact',
-      },
-      ownerId || undefined,
-    )
-
-    setContactForm({ name: '', email: '', message: '' })
-    setSent(true)
-    window.setTimeout(() => setSent(false), 2500)
-  }
 
   return (
     <div className="min-h-screen font-serif bg-[radial-gradient(circle_at_20%_20%,rgba(250,242,222,0.9),transparent_45%),linear-gradient(to_bottom,rgba(255,255,255,0.9),rgba(250,246,240,1))]">
@@ -151,84 +125,33 @@ function ContactContent() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="rounded-3xl border-2 border-amber-200 bg-white p-8 shadow-[0_10px_30px_rgba(0,0,0,0.06)]">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-neutral-dark">Contact Us</h1>
-            <p className="mt-3 text-neutral-gray">
-              Reach out for refill requests, availability questions, and pharmacy support.
-            </p>
+      <main className="mx-auto max-w-2xl px-4 py-12">
+        <div className="rounded-3xl border-2 border-amber-200 bg-white p-8 shadow-[0_10px_30px_rgba(0,0,0,0.06)]">
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-neutral-dark text-center">Contact Us</h1>
+          <p className="mt-3 text-neutral-gray text-center">
+            Reach out for availability questions and general pharmacy support.
+          </p>
 
-            <div className="mt-6 space-y-3 text-sm">
-              {brand.phone && (
-                <div className="flex items-center gap-2 text-neutral-dark">
-                  <FiPhoneCall className="text-[#7a5c2e]" />
-                  <span>{brand.phone}</span>
-                </div>
-              )}
-              {brand.address && (
-                <div className="flex items-center gap-2 text-neutral-dark">
-                  <FiMapPin className="text-[#7a5c2e]" />
-                  <span>{brand.address}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50/60 p-5">
-              <div className="font-bold text-neutral-dark">Tip</div>
-              <div className="mt-1 text-sm text-neutral-gray">
-                Messages from this form are saved in the owner dashboard under Orders {'>'} Customer Messages.
+          <div className="mt-8 space-y-4 border-t border-neutral-border pt-6 max-w-md mx-auto text-base">
+            {brand.phone && (
+              <div className="flex items-center gap-3 text-neutral-dark justify-center">
+                <FiPhoneCall className="text-[#7a5c2e]" size={18} />
+                <a href={`tel:${brand.phone}`} className="hover:underline">{brand.phone}</a>
               </div>
-            </div>
+            )}
+            {brand.address && (
+              <div className="flex items-center gap-3 text-neutral-dark justify-center">
+                <FiMapPin className="text-[#7a5c2e]" size={18} />
+                <span>{brand.address}</span>
+              </div>
+            )}
+            {brand.openHours && (
+              <div className="flex items-center gap-3 text-neutral-dark justify-center">
+                <FiClock className="text-[#7a5c2e]" size={18} />
+                <span>{brand.openHours}</span>
+              </div>
+            )}
           </div>
-
-          <form
-            onSubmit={handleSubmit}
-            className="rounded-3xl border-2 border-amber-200 bg-white p-8 shadow-[0_10px_30px_rgba(0,0,0,0.06)] space-y-4"
-          >
-            <div className="text-sm text-neutral-gray tracking-wide">Send a message</div>
-            <div>
-              <label className="block text-sm font-medium text-neutral-dark mb-2">Name</label>
-              <input
-                className="w-full px-4 py-2 border border-neutral-border rounded-lg focus:ring-2 focus:ring-amber-700 focus:border-transparent"
-                placeholder="Your name"
-                value={contactForm.name}
-                onChange={(event) => setContactForm((prev) => ({ ...prev, name: event.target.value }))}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-neutral-dark mb-2">Email</label>
-              <input
-                type="email"
-                className="w-full px-4 py-2 border border-neutral-border rounded-lg focus:ring-2 focus:ring-amber-700 focus:border-transparent"
-                placeholder="you@example.com"
-                value={contactForm.email}
-                onChange={(event) => setContactForm((prev) => ({ ...prev, email: event.target.value }))}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-neutral-dark mb-2">Message</label>
-              <textarea
-                className="w-full px-4 py-2 border border-neutral-border rounded-lg focus:ring-2 focus:ring-amber-700 focus:border-transparent"
-                rows={5}
-                placeholder="How can we help?"
-                value={contactForm.message}
-                onChange={(event) => setContactForm((prev) => ({ ...prev, message: event.target.value }))}
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-[#7a5c2e] text-white hover:bg-[#624824] transition-colors font-semibold"
-            >
-              <FiSend />
-              Send Message
-            </button>
-            {sent ? <p className="text-sm text-success">Message sent to pharmacy owner inbox.</p> : null}
-          </form>
         </div>
       </main>
 

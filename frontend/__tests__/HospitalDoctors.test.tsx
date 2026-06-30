@@ -124,10 +124,9 @@ async function openAddModal() {
   await userEvent.click(screen.getByRole('button', { name: /add doctor/i }));
 }
 
-/** Fill just name + specialty in the Add modal. */
-async function fillBasicDoctorFields(name = 'Dr. Test', specialty = 'Neurology') {
+/** Fill name in the Add modal. */
+async function fillBasicDoctorFields(name = 'Dr. Test') {
   await userEvent.type(screen.getByPlaceholderText(/Dr\. Ahmed Ali/i), name);
-  await userEvent.type(screen.getByPlaceholderText(/e\.g\. Cardiology/i), specialty);
 }
 
 /**
@@ -214,15 +213,7 @@ describe('HospitalDoctorsPage — Add Doctor', () => {
     expect(mockCreateDoctor).not.toHaveBeenCalled();
   });
 
-  it('shows validation error when specialty is missing', async () => {
-    render(<HospitalDoctorsPage />);
-    await waitFor(() => expect(mockListDoctors).toHaveBeenCalled());
-    await openAddModal();
-    await userEvent.type(screen.getByPlaceholderText(/Dr\. Ahmed Ali/i), 'Dr. Test');
-    await clickSave();
-    expect(await screen.findByText(/specialty is required/i)).toBeInTheDocument();
-    expect(mockCreateDoctor).not.toHaveBeenCalled();
-  });
+
 
   it('shows validation error when department is not selected', async () => {
     render(<HospitalDoctorsPage />);
@@ -336,10 +327,7 @@ describe('HospitalDoctorsPage — Edit Doctor', () => {
     expect(screen.getByDisplayValue('Dr. Ahmed Ali')).toBeInTheDocument();
   });
 
-  it('pre-fills the specialty field', async () => {
-    await renderAndOpenEdit();
-    expect(screen.getByPlaceholderText(/e\.g\. Cardiology/i)).toHaveValue('Cardiology');
-  });
+
 
   it('pre-fills the email field', async () => {
     await renderAndOpenEdit();

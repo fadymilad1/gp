@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/Input'
 import { Textarea } from '@/components/ui/Textarea'
 import { FiSend, FiMessageSquare, FiLock, FiDollarSign } from 'react-icons/fi'
 import { getScopedItem } from '@/lib/storage'
+import { chatbotApi } from '@/lib/api'
+import { pharmacyApi } from '@/lib/pharmacy'
 
 const CATEGORY_KEYWORDS: Array<{ category: string; keywords: string[] }> = [
   { category: 'Pain Relief', keywords: ['ibuprofen', 'paracetamol', 'acetaminophen', 'pain', 'headache'] },
@@ -59,11 +61,15 @@ export default function AIAssistantPage() {
   const [cityDraft, setCityDraft] = useState('')
   const [autoFilledInfo, setAutoFilledInfo] = useState('')
   const [layoutRecommendations, setLayoutRecommendations] = useState<string[]>([])
+  const [mounted, setMounted] = useState(false)
+  const [conversationId, setConversationId] = useState<string | undefined>(undefined)
+  const [subdomain, setSubdomain] = useState('')
+  const [isSending, setIsSending] = useState(false)
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 1,
       type: 'ai' as const,
-      content: userType === 'hospital' 
+      content: userType === 'hospital'
         ? "Hello! I'm here to help patients with their questions about your medical services. How can I assist you today?"
         : "Hello! I'm here to help customers with medication questions, prescription refills, and pharmacy services. How can I assist you today?",
       timestamp: new Date(),
@@ -74,7 +80,7 @@ export default function AIAssistantPage() {
     // Check if user has paid for AI chatbot feature (user-scoped)
     const selectedFeatures = getScopedItem('selectedFeatures')
     const userData = localStorage.getItem('user')
-    
+
     if (userData) {
       const user = JSON.parse(userData)
       setUserType(user.businessType || user.business_type || 'hospital')
@@ -90,6 +96,15 @@ export default function AIAssistantPage() {
       const templateId = parseInt(selectedTemplate)
       // Templates 1 and 2 include AI (Modern and Classic)
       setHasAIChatbot(templateId === 1 || templateId === 2)
+    }
+    setMounted(true)
+
+    if (userType === 'pharmacy') {
+      void pharmacyApi.getProfile().then((res) => {
+        if (res.data?.subdomain) {
+          setSubdomain(res.data.subdomain)
+        }
+      })
     }
   }, [userType])
 
@@ -117,65 +132,70 @@ export default function AIAssistantPage() {
     setLayoutRecommendations(buildLayoutRecommendations(pharmacyNameDraft))
   }
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!message.trim()) return
+    if (!message.trim() || isSending) return
 
+    const userText = message.trim()
     const userMessage = {
-      id: messages.length + 1,
+      id: Date.now(),
       type: 'user' as const,
-      content: message,
+      content: userText,
       timestamp: new Date(),
     }
 
-    setMessages([...messages, userMessage])
+    setMessages((prev) => [...prev, userMessage])
     setMessage('')
+    setIsSending(true)
 
-    // Simulate AI response based on user type
-    setTimeout(() => {
-      let aiContent = ''
-      const lowerMessage = message.toLowerCase()
-      
-      if (userType === 'hospital') {
-        aiContent = 'Thank you for your question. I can help you with information about appointments, services, and finding the right specialist for your needs.'
-        
-        // Hospital-specific symptom responses
-        if (lowerMessage.includes('pain') || lowerMessage.includes('hurt') || lowerMessage.includes('ache')) {
-          if (lowerMessage.includes('chest') || lowerMessage.includes('heart')) {
-            aiContent = 'Based on your chest pain symptoms, I recommend seeing a Cardiologist. They specialize in heart and cardiovascular conditions. Would you like me to help you schedule an appointment?'
-          } else if (lowerMessage.includes('head') || lowerMessage.includes('migraine')) {
-            aiContent = 'For headaches and migraines, I suggest consulting with a Neurologist. They can properly diagnose and treat various types of headaches. Shall I check available appointments?'
-          } else if (lowerMessage.includes('stomach') || lowerMessage.includes('abdomen')) {
-            aiContent = 'Stomach pain could require a Gastroenterologist consultation. They specialize in digestive system issues. Would you like to book an appointment?'
-          }
-        } else if (lowerMessage.includes('skin') || lowerMessage.includes('rash') || lowerMessage.includes('acne')) {
-          aiContent = 'For skin concerns, I recommend seeing a Dermatologist. They can help with various skin conditions. Would you like me to check their availability?'
-        } else if (lowerMessage.includes('eye') || lowerMessage.includes('vision')) {
-          aiContent = 'For eye or vision problems, an Ophthalmologist would be the right specialist to see. They can examine and treat eye conditions. Shall I help you schedule?'
-        }
-      } else if (userType === 'pharmacy') {
-        aiContent = 'Hello! I can help you with medication information, prescription refills, and general health questions. How can I assist you today?'
-        
-        // Pharmacy-specific responses
-        if (lowerMessage.includes('medication') || lowerMessage.includes('medicine') || lowerMessage.includes('drug')) {
-          aiContent = 'I can provide general information about medications, including common uses and side effects. For specific medical advice, please consult with our pharmacist or your doctor. What medication would you like to know about?'
-        } else if (lowerMessage.includes('refill') || lowerMessage.includes('prescription')) {
-          aiContent = 'I can help you with prescription refills! Please provide your prescription number or name, and I can check the status and estimated ready time for pickup.'
-        } else if (lowerMessage.includes('side effect') || lowerMessage.includes('interaction')) {
-          aiContent = 'For medication side effects and drug interactions, I recommend speaking directly with our pharmacist for personalized advice. They can review your complete medication list for safety.'
-        } else if (lowerMessage.includes('hours') || lowerMessage.includes('open') || lowerMessage.includes('close')) {
-          aiContent = 'Our pharmacy hours are Monday-Friday 9AM-8PM, Saturday 9AM-6PM, and Sunday 10AM-4PM. We also offer 24/7 prescription refill requests online!'
-        }
-      }
+    // Add a temporary typing message from AI
+    const typingMessageId = Date.now() + 1
+    const typingMessage = {
+      id: typingMessageId,
+      type: 'ai' as const,
+      content: 'Thinking...',
+      timestamp: new Date(),
+    }
+    setMessages((prev) => [...prev, typingMessage])
 
-      const aiResponse = {
-        id: messages.length + 2,
-        type: 'ai' as const,
-        content: aiContent,
-        timestamp: new Date(),
+    try {
+      const res = await chatbotApi.sendMessage({
+        message: userText,
+        conversation_id: conversationId,
+        subdomain: userType === 'pharmacy' ? subdomain || undefined : undefined,
+      })
+
+      if (res.error) {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === typingMessageId
+              ? { ...msg, content: `Error: ${res.error}` }
+              : msg
+          )
+        )
+      } else if (res.data) {
+        if (res.data.conversation_id) {
+          setConversationId(res.data.conversation_id)
+        }
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === typingMessageId
+              ? { ...msg, content: res.data?.assistant?.content || 'Sorry, I could not generate a response.' }
+              : msg
+          )
+        )
       }
-      setMessages((prev) => [...prev, aiResponse])
-    }, 1000)
+    } catch {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === typingMessageId
+            ? { ...msg, content: 'Failed to communicate with AI assistant.' }
+            : msg
+        )
+      )
+    } finally {
+      setIsSending(false)
+    }
   }
 
   return (
@@ -194,7 +214,7 @@ export default function AIAssistantPage() {
           <FiLock className="mx-auto text-neutral-gray mb-4" size={48} />
           <h3 className="text-xl font-semibold text-neutral-dark mb-2">AI Chatbot Not Available</h3>
           <p className="text-neutral-gray mb-6">
-            {userType === 'hospital' 
+            {userType === 'hospital'
               ? 'You need to subscribe to the AI Chatbot feature ($29/month) to enable patient assistance on your website.'
               : 'AI Chatbot is included with Modern and Classic pharmacy templates. Upgrade your template to enable patient assistance.'
             }
@@ -204,25 +224,10 @@ export default function AIAssistantPage() {
             {userType === 'hospital' ? 'Subscribe to AI Chatbot ($29/month)' : 'Upgrade Template'}
           </Button>
         </Card>
-      ) : (
-        <>
-          {/* Toggle */}
-          <Card className="p-6">
-            <Toggle
-              label={`Enable AI Assistant for ${userType === 'hospital' ? 'Patients' : 'Customers'}`}
-              checked={enabled}
-              onChange={setEnabled}
-              description={userType === 'hospital' 
-                ? "Allow patients to chat with AI assistant on your website for questions about services, appointments, and general medical inquiries"
-                : "Allow customers to chat with AI assistant on your website for questions about medications, prescriptions, and pharmacy services"
-              }
-            />
-          </Card>
-        </>
-      )}
+      ) : null}
 
       {/* Chat Interface */}
-      {hasAIChatbot && enabled && (
+      {hasAIChatbot && (
         <Card className="p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -251,21 +256,19 @@ export default function AIAssistantPage() {
                 className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[70%] rounded-lg p-4 ${
-                    msg.type === 'user'
+                  className={`max-w-[70%] rounded-lg p-4 ${msg.type === 'user'
                       ? 'bg-primary text-white'
                       : 'bg-white border border-neutral-border'
-                  }`}
+                    }`}
                 >
                   <p className={msg.type === 'user' ? 'text-white' : 'text-neutral-dark'}>
                     {msg.content}
                   </p>
                   <p
-                    className={`text-xs mt-2 ${
-                      msg.type === 'user' ? 'text-primary-light' : 'text-neutral-gray'
-                    }`}
+                    className={`text-xs mt-2 ${msg.type === 'user' ? 'text-primary-light' : 'text-neutral-gray'
+                      }`}
                   >
-                    {msg.timestamp.toLocaleTimeString()}
+                    {mounted ? msg.timestamp.toLocaleTimeString() : ''}
                   </p>
                 </div>
               </div>
@@ -275,14 +278,15 @@ export default function AIAssistantPage() {
           {/* Input */}
           <form onSubmit={handleSend} className="flex gap-3">
             <Input
-              placeholder={`Ask a question as a ${userType === 'hospital' ? 'patient' : 'customer'} would...`}
+              placeholder={isSending ? "AI is thinking..." : `Ask a question as a ${userType === 'hospital' ? 'patient' : 'customer'} would...`}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               className="flex-1"
+              disabled={isSending}
             />
-            <Button type="submit" variant="primary">
+            <Button type="submit" variant="primary" disabled={isSending}>
               <FiSend className="mr-2" />
-              Send
+              {isSending ? "Sending..." : "Send"}
             </Button>
           </form>
         </Card>
@@ -421,7 +425,7 @@ export default function AIAssistantPage() {
       )}
 
       {hasAIChatbot && userType === 'pharmacy' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
           <Card className="p-4 sm:p-6">
             <h3 className="font-semibold text-neutral-dark mb-2 text-sm sm:text-base">Product Information</h3>
             <p className="text-xs sm:text-sm text-neutral-gray">
@@ -432,12 +436,6 @@ export default function AIAssistantPage() {
             <h3 className="font-semibold text-neutral-dark mb-2 text-sm sm:text-base">Health & Wellness Tips</h3>
             <p className="text-xs sm:text-sm text-neutral-gray">
               Share general health advice, wellness tips, and information about over-the-counter products
-            </p>
-          </Card>
-          <Card className="p-4 sm:p-6">
-            <h3 className="font-semibold text-neutral-dark mb-2 text-sm sm:text-base">Store Information</h3>
-            <p className="text-xs sm:text-sm text-neutral-gray">
-              Answer questions about store hours, location, services, and contact information
             </p>
           </Card>
         </div>

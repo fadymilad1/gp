@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
@@ -48,13 +48,13 @@ const SERVICE_ITEMS = [
     icon: FiUsers,
     title: 'Family Profile Management',
     description:
-      'Handle recurring orders and refill requests for multiple household members in one account.',
+      'Handle recurring orders for multiple household members in one account.',
   },
   {
     icon: FiPackage,
-    title: 'Refill Ready Queue',
+    title: 'Order Ready Queue',
     description:
-      'Submit refill intent and receive status updates as your order progresses.',
+      'Submit order intent and receive status updates as your order progresses.',
   },
   {
     icon: FiActivity,

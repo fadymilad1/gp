@@ -174,7 +174,7 @@ function Template3MedicationsContent() {
               }
 
               return {
-                id: `user-${idx}`,
+                id: (p as any).id?.toString() || `user-${idx}`,
                 name: p.name,
                 category: p.category || 'General',
                 description: p.description || '',
@@ -512,9 +512,9 @@ function Template3MedicationsContent() {
                           <span className="text-2xl font-bold text-neutral-dark">{product.price}</span>
                         </div>
                         <div className="flex items-center justify-between border-t border-gray-200 pt-2">
-                          <span className="text-sm font-medium text-gray-600">Stock:</span>
+                          <span className="text-sm font-medium text-gray-600">Status:</span>
                           <span className={`text-lg font-bold ${isOutOfStock ? 'text-red-600' : 'text-green-600'}`}>
-                            {product.stock !== undefined ? `${product.stock} units` : 'N/A'}
+                            {isOutOfStock ? 'Out of Stock' : 'In Stock'}
                           </span>
                         </div>
                       </div>

@@ -62,36 +62,28 @@ export default function LandingPage() {
   const pricingPlans = [
     {
       name: 'Hospital Websites',
-      price: 'From $19',
-      period: 'one-time per feature',
+      price: 'From $9',
+      period: '/month',
       features: [
-        'Pay once for each feature you enable (now much lower)',
-        'AI Chatbot: $15/month subscription',
-        'Review System: $20 one-time',
+        'Basic Plan: $9/month',
+        'Premium Plan: $29/month',
+        'AI Chatbot, Reviews, WhatsApp & Themes included in Premium',
+        'Guided setup & department manager',
+        'No setup fees, cancel anytime',
       ],
     },
     {
       name: 'Pharmacy Templates',
-      price: '$15 - $25',
+      price: '$15 - $28',
       period: 'one-time',
       features: [
         'Minimal Pharmacy template: $15',
         'Classic Pharmacy template: $20',
-        'Modern Pharmacy + AI template: $25',
-        'AI chatbot included with Modern Pharmacy template',
+        'Premium (Modern, Bento, Glass, Concierge): $24 - $28',
+        'AI Chatbot & WhatsApp buttons included',
+        'Bidirectional Google Sheets Sync',
       ],
       popular: true,
-    },
-    {
-      name: 'Add-ons & Extras',
-      price: 'From $15',
-      period: 'one-time',
-      features: [
-        'Prescription Refill module: $15 one-time',
-        'AI Chatbot: $15/month subscription',
-        'Review System: $20 one-time',
-        'Extend your website later with more features anytime',
-      ],
     },
   ]
 
@@ -253,6 +245,17 @@ export default function LandingPage() {
             </div>
             <span className="text-xl sm:text-2xl font-bold text-primary font-display">Medify</span>
           </Link>
+          <div className="hidden md:flex items-center gap-6">
+            <Link href="#templates" className="text-sm font-medium text-neutral-gray hover:text-primary transition-colors">
+              Templates
+            </Link>
+            <Link href="#features" className="text-sm font-medium text-neutral-gray hover:text-primary transition-colors">
+              Features
+            </Link>
+            <Link href="#pricing" className="text-sm font-medium text-neutral-gray hover:text-primary transition-colors">
+              Pricing
+            </Link>
+          </div>
           <div className="flex items-center gap-2 sm:gap-4">
             <Link href="/login" className="text-sm sm:text-base text-neutral-gray hover:text-primary transition-colors">
               Login
@@ -383,7 +386,7 @@ export default function LandingPage() {
       </section>
 
       {/* Pharmacy Templates */}
-      <section className="py-12 sm:py-20 overflow-x-hidden w-full">
+      <section id="templates" className="py-12 sm:py-20 overflow-x-hidden w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full">
           <h2 className="font-display text-3xl sm:text-4xl font-bold text-center text-neutral-dark mb-3">
             Pharmacy Templates
@@ -486,7 +489,7 @@ export default function LandingPage() {
       </section>
 
       {/* AI Assistant Feature */}
-      <section className="section-glow py-12 sm:py-20 overflow-x-hidden w-full">
+      <section id="features" className="section-glow py-12 sm:py-20 overflow-x-hidden w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
             <div>
@@ -521,12 +524,12 @@ export default function LandingPage() {
       </section>
 
       {/* Pricing Plans */}
-      <section className="py-12 sm:py-20 overflow-x-hidden w-full">
+      <section id="pricing" className="py-12 sm:py-20 overflow-x-hidden w-full">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 w-full">
           <h2 className="font-display text-3xl sm:text-4xl font-bold text-center text-neutral-dark mb-8 sm:mb-12">
             Pricing Plans
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 max-w-4xl mx-auto">
             {pricingPlans.map((plan) => (
               <Card
                 key={plan.name}
@@ -554,9 +557,11 @@ export default function LandingPage() {
                     </li>
                   ))}
                 </ul>
-                <Button variant={plan.popular ? 'primary' : 'secondary'} className="w-full relative z-10">
-                  Get Started
-                </Button>
+                <Link href="/signup" className="block w-full relative z-10">
+                  <Button variant={plan.popular ? 'primary' : 'secondary'} className="w-full">
+                    Get Started
+                  </Button>
+                </Link>
               </Card>
             ))}
           </div>
@@ -689,9 +694,21 @@ export default function LandingPage() {
             <div>
               <h4 className="font-semibold mb-4">Product</h4>
               <ul className="space-y-2 text-white/70">
-                <li>Features</li>
-                <li>Pricing</li>
-                <li>Templates</li>
+                <li>
+                  <Link href="#features" className="hover:text-amber-200 transition-colors">
+                    Features
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#pricing" className="hover:text-amber-200 transition-colors">
+                    Pricing
+                  </Link>
+                </li>
+                <li>
+                  <Link href="#templates" className="hover:text-amber-200 transition-colors">
+                    Templates
+                  </Link>
+                </li>
               </ul>
             </div>
             <div>

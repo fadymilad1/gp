@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
@@ -151,7 +151,10 @@ function TemplateFiveCheckoutContent() {
 
       const nextQty = current.quantity + delta
       if (nextQty <= 0) return prev.filter((item) => item.product.id !== productId)
-      if ((current.product.stock || 0) < nextQty) return prev
+      if (delta > 0 && current.product.stock !== undefined && nextQty > current.product.stock) {
+        alert(`Sorry, only ${current.product.stock} units of ${current.product.name} are available in stock.`)
+        return prev
+      }
 
       return prev.map((item) =>
         item.product.id === productId ? { ...item, quantity: nextQty } : item,

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { getHospitalDoctors } from '@/lib/hospitalApi';
 import type { Doctor } from '@/types/hospital';
 import DoctorsListClient from './DoctorsListClient';
@@ -28,11 +28,13 @@ export default async function DoctorsListBlock({ settings, subdomain }: DoctorsL
     }
 
     return (
-        <DoctorsListClient
-            title={title}
-            subtitle={subtitle}
-            doctors={doctors}
-            fetchError={fetchError}
-        />
+        <Suspense fallback={<div className="py-16 text-center text-gray-500">Loading doctors...</div>}>
+            <DoctorsListClient
+                title={title}
+                subtitle={subtitle}
+                doctors={doctors}
+                fetchError={fetchError}
+            />
+        </Suspense>
     );
 }

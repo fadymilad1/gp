@@ -1,4 +1,4 @@
-import { API_BASE_URL, getAuthToken } from '@/lib/api'
+import { API_BASE_URL, apiRequest, ApiResponse } from '@/lib/api'
 
 export type PharmacyOrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled'
 
@@ -140,128 +140,47 @@ export const placePharmacyOrder = async (
   }
 }
 
-export const listOwnerPharmacyOrders = async (): Promise<ApiResult<PharmacyOrder[]>> => {
-  const token = getAuthToken()
-  if (!token) return { error: 'Authentication required.' }
+export const listOwnerPharmacyOrders = async (): Promise<ApiResponse<PharmacyOrder[]>> => {
+  const response = await apiRequest<PharmacyOrder[]>('/pharmacy/orders/')
+  if (response.error) return response
 
-  try {
-    const response = await fetch(`${API_BASE_URL}/pharmacy/orders/`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-
-    const data = await parseJsonSafely(response)
-
-    if (!response.ok) {
-      return { error: extractErrorMessage(data), errorDetails: data }
-    }
-
-    const list = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : []
-    return { data: list as PharmacyOrder[] }
-  } catch {
-    return { error: 'Network error while loading orders.' }
-  }
+  const list = Array.isArray(response.data)
+    ? response.data
+    : Array.isArray((response.data as any)?.results)
+      ? (response.data as any).results
+      : []
+  return { data: list }
 }
 
 export const updateOwnerPharmacyOrderStatus = async (
   orderId: string,
   status: PharmacyOrderStatus,
-): Promise<ApiResult<PharmacyOrder>> => {
-  const token = getAuthToken()
-  if (!token) return { error: 'Authentication required.' }
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/pharmacy/orders/${orderId}/status/`, {
-      method: 'PATCH',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ status }),
-    })
-
-    const data = await parseJsonSafely(response)
-
-    if (!response.ok) {
-      return { error: extractErrorMessage(data), errorDetails: data }
-    }
-
-    return { data: data as PharmacyOrder }
-  } catch {
-    return { error: 'Network error while updating order status.' }
-  }
+): Promise<ApiResponse<PharmacyOrder>> => {
+  return apiRequest<PharmacyOrder>(`/pharmacy/orders/${orderId}/status/`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  })
 }
 
-export const getOwnerUnseenPharmacyOrdersCount = async (): Promise<ApiResult<number>> => {
-  const token = getAuthToken()
-  if (!token) return { error: 'Authentication required.' }
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/pharmacy/orders/unseen_count/`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-
-    const data = (await parseJsonSafely(response)) as UnseenOrdersCountResponse | null
-
-    if (!response.ok) {
-      return { error: extractErrorMessage(data), errorDetails: data }
-    }
-
-    return { data: Number(data?.count || 0) }
-  } catch {
-    return { error: 'Network error while loading unseen orders.' }
-  }
+export const getOwnerUnseenPharmacyOrdersCount = async (): Promise<ApiResponse<number>> => {
+  const response = await apiRequest<UnseenOrdersCountResponse>('/pharmacy/orders/unseen_count/')
+  if (response.error) return { error: response.error }
+  return { data: Number(response.data?.count || 0) }
 }
 
 export const markOwnerPharmacyOrdersSeen = async (
   orderIds?: string[],
-): Promise<ApiResult<MarkSeenResponse>> => {
-  const token = getAuthToken()
-  if (!token) return { error: 'Authentication required.' }
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/pharmacy/orders/mark_seen/`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(orderIds && orderIds.length ? { order_ids: orderIds } : {}),
-    })
-
-    const data = (await parseJsonSafely(response)) as MarkSeenResponse | null
-
-    if (!response.ok) {
-      return { error: extractErrorMessage(data), errorDetails: data }
-    }
-
-    return { data: data || { marked_seen: 0, remaining_unseen: 0 } }
-  } catch {
-    return { error: 'Network error while marking orders as seen.' }
-  }
+): Promise<ApiResponse<MarkSeenResponse>> => {
+  const response = await apiRequest<MarkSeenResponse>('/pharmacy/orders/mark_seen/', {
+    method: 'POST',
+    body: JSON.stringify(orderIds && orderIds.length ? { order_ids: orderIds } : {}),
+  })
+  if (response.error) return response
+  return { data: response.data || { marked_seen: 0, remaining_unseen: 0 } }
 }
 
-export const deletePharmacyOrder = async (orderId: string): Promise<ApiResult<void>> => {
-  const token = getAuthToken()
-  if (!token) return { error: 'Authentication required.' }
-
-  try {
-    const response = await fetch(`${API_BASE_URL}/pharmacy/orders/${orderId}/`, {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-
-    if (response.status === 204) return { data: undefined }
-
-    const data = await parseJsonSafely(response)
-    if (!response.ok) return { error: extractErrorMessage(data), errorDetails: data }
-    return { data: undefined }
-  } catch {
-    return { error: 'Network error while deleting order.' }
-  }
+export const deletePharmacyOrder = async (orderId: string): Promise<ApiResponse<void>> => {
+  return apiRequest<void>(`/pharmacy/orders/${orderId}/`, {
+    method: 'DELETE',
+  })
 }

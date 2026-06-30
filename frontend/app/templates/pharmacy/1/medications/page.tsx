@@ -151,7 +151,7 @@ function MedicationsPageContent() {
             const userProducts: Product[] = setup.products
               .filter((p) => p.name?.trim())
               .map((p, idx) => ({
-                id: `user-${idx}`,
+                id: (p as any).id?.toString() || `user-${idx}`,
                 name: p.name,
                 category: p.category || 'General',
                 description: p.description,
@@ -531,7 +531,6 @@ function MedicationsPageContent() {
                 <option value="name_asc">Name A-Z</option>
                 <option value="price_low">Price Low to High</option>
                 <option value="price_high">Price High to Low</option>
-                <option value="stock_high">Stock High to Low</option>
               </select>
             </div>
             <label className="inline-flex items-center gap-2 text-sm text-neutral-dark">
@@ -601,10 +600,8 @@ function MedicationsPageContent() {
               const stockLabel = isOutOfStock
                 ? 'Out of stock'
                 : isLowStock
-                  ? `Low stock (${stockValue})`
-                  : stockValue !== undefined
-                    ? `In stock (${stockValue})`
-                    : 'Available'
+                  ? 'Low stock'
+                  : 'In stock'
 
               return (
                 <div
@@ -697,7 +694,7 @@ function MedicationsPageContent() {
       <footer className="border-t border-neutral-border mt-16 bg-gradient-to-b from-white to-neutral-light/30">
         <div className="mx-auto max-w-7xl px-4 py-8 text-sm text-neutral-gray flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
           <div>© {new Date().getFullYear()} {brand.name || (isDemo ? 'Modern Pharmacy' : 'Pharmacy')}. All rights reserved.</div>
-          <div className="opacity-80">Modern Pharmacy</div>
+          <div className="opacity-80">This website done by Medify</div>
         </div>
       </footer>
 

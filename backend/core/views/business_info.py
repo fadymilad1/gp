@@ -193,7 +193,7 @@ class BusinessInfoViewSet(viewsets.ModelViewSet):
         business_info_data = None
         try:
             from core.serializers.business_serializers import BusinessInfoSerializer
-            business_info_data = BusinessInfoSerializer(website_setup.businessinfo, context={'request': request}).data
+            business_info_data = BusinessInfoSerializer(website_setup.business_info, context={'request': request}).data
         except Exception:
             pass
 

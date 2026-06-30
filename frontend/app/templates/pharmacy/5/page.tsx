@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
@@ -157,7 +157,7 @@ function TemplateFiveHomeContent() {
             </h1>
             <p className="mt-4 max-w-2xl text-base leading-relaxed text-slate-600">
               {brand.about ||
-                'HarborLine combines fast ordering, refill reminders, and pharmacist-first support in one modern storefront.'}
+                'HarborLine combines fast ordering and pharmacist-first support in one modern storefront.'}
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
@@ -193,7 +193,7 @@ function TemplateFiveHomeContent() {
             <p className="text-xs uppercase tracking-[0.22em] text-white/70">Featured journey</p>
             <h2 className="mt-3 text-2xl font-bold">Family wellness lane</h2>
             <p className="mt-3 text-sm leading-relaxed text-white/80">
-              Curated bundles, scheduled refill reminders, and one-click repeat ordering for high-frequency purchases.
+              Curated bundles and one-click repeat ordering for high-frequency purchases.
             </p>
             <div className="mt-6 space-y-3">
               {[

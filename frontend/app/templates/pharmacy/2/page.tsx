@@ -16,10 +16,12 @@ import {
   FiPlus,
 } from 'react-icons/fi'
 import { AIChatbot } from '@/components/pharmacy/AIChatbot'
+
 import { BrandLogo } from '@/components/pharmacy/BrandLogo'
 import { ProductImage } from '@/components/pharmacy/ProductImage'
 import { getSiteItem, setSiteItem, removeSiteItem, getStoredUser, setSiteOwnerId } from '@/lib/storage'
 import { getStoredPharmacyThemeSettings, isSectionEnabled } from '@/lib/pharmacyTheme'
+import { resolveOpenHours } from '@/lib/pharmacyTemplateRuntime'
 
 type PharmacySetup = {
   phone?: string
@@ -88,13 +90,15 @@ function Template2HomeContent() {
   const [cart, setCart] = useState<CartItem[]>([])
 
   useEffect(() => {
-    if (isDemo) return
     const user = getStoredUser()
     if (ownerId) setSiteOwnerId(ownerId)
     else if (user?.id) setSiteOwnerId(user.id)
-    setPharmacySetup(safeJsonParse<PharmacySetup>(getSiteItem('pharmacySetup')))
-    setBusinessInfo(safeJsonParse<BusinessInfo>(getSiteItem('businessInfo')))
-  }, [isDemo, ownerId])
+    
+    const localSetup = getSiteItem('pharmacySetup')
+    const localInfo = getSiteItem('businessInfo')
+    if (localSetup) setPharmacySetup(safeJsonParse<PharmacySetup>(localSetup))
+    if (localInfo) setBusinessInfo(safeJsonParse<BusinessInfo>(localInfo))
+  }, [ownerId])
 
   useEffect(() => {
     const raw = isDemo ? localStorage.getItem(cartKey) : getSiteItem(cartKey)
@@ -113,7 +117,8 @@ function Template2HomeContent() {
   }, [cart, cartKey, isDemo])
 
   const brand = useMemo(() => {
-    if (isDemo) {
+    const hasCustomInfo = Boolean(businessInfo?.name || pharmacySetup?.phone || pharmacySetup?.address)
+    if (isDemo && !hasCustomInfo) {
       return {
         name: 'Classic Pharmacy',
         logo: '/mod logo.png',
@@ -125,23 +130,20 @@ function Template2HomeContent() {
       }
     }
 
-    const name = businessInfo?.name?.trim() || ''
-    const logo = businessInfo?.logo || null
-    const about = businessInfo?.about?.trim() || ''
-    const phone = businessInfo?.contactPhone || pharmacySetup?.phone || ''
-    const address = businessInfo?.address || pharmacySetup?.address || ''
+    const name = businessInfo?.name?.trim() || (isDemo ? 'Classic Pharmacy' : '')
+    const logo = businessInfo?.logo || (isDemo ? '/mod logo.png' : null)
+    const about = businessInfo?.about?.trim() || (isDemo ? 'Traditional care with a professional touch. Quality medicines, trusted advice, and reliable service.' : '')
+    const phone = businessInfo?.contactPhone || pharmacySetup?.phone || (isDemo ? '+1 (555) 234-5678' : '')
+    const address = businessInfo?.address || pharmacySetup?.address || (isDemo ? '45 Health Avenue, City' : '')
 
-    const hours = businessInfo?.workingHours
-    let openHours = ''
-    if (hours?.monday?.closed) openHours = 'Hours vary'
-    else if (hours?.monday?.open && hours?.monday?.close) openHours = `Mon ${hours.monday.open}–${hours.monday.close}`
+    const openHours = businessInfo ? resolveOpenHours(businessInfo) || (isDemo ? 'Mon–Sat 09:00–19:00' : '') : (isDemo ? 'Mon–Sat 09:00–19:00' : '')
 
     return { name, logo, about, phone, address, openHours }
   }, [businessInfo, pharmacySetup, isDemo])
 
   const themeSettings = useMemo(
-    () => (isDemo ? null : getStoredPharmacyThemeSettings()),
-    [isDemo],
+    () => getStoredPharmacyThemeSettings(),
+    [],
   )
 
   const showHero = isDemo || !themeSettings || isSectionEnabled(themeSettings, 'hero')
@@ -151,7 +153,8 @@ function Template2HomeContent() {
   const showMap = isDemo || !themeSettings || isSectionEnabled(themeSettings, 'map')
 
   const featured = useMemo<Product[]>(() => {
-    if (isDemo) {
+    const list = pharmacySetup?.products?.filter((p) => p.name?.trim()) ?? []
+    if (isDemo && list.length === 0) {
       return [
         {
           id: 'd1',
@@ -182,11 +185,9 @@ function Template2HomeContent() {
         },
       ]
     }
-
-    const list = pharmacySetup?.products?.filter((p) => p.name?.trim()) ?? []
     return list
       .map((p, idx) => ({
-        id: `user-${idx}`,
+        id: (p as any).id?.toString() || `user-${idx}`,
         name: p.name,
         category: p.category || 'General',
         description: p.description,
@@ -472,7 +473,7 @@ function Template2HomeContent() {
           </div>
           <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { title: 'Prescription Support', desc: 'Refills, consultation, and pharmacist guidance.' },
+              { title: 'Prescription Support', desc: 'Consultation and pharmacist guidance.' },
               { title: 'Health & Wellness', desc: 'Vitamins, OTC products, and seasonal care.' },
               { title: 'Delivery Options', desc: 'Pickup or delivery for supported products.' },
             ].map((s) => (
@@ -510,7 +511,7 @@ function Template2HomeContent() {
               className="w-full h-[360px]"
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
-              src="https://www.google.com/maps?q=Beirut&output=embed"
+              src={`https://www.google.com/maps?q=${encodeURIComponent(brand.address || (isDemo ? 'Beirut' : ''))}&output=embed`}
             />
           </div>
         </div>
@@ -563,7 +564,7 @@ function Template2HomeContent() {
       <footer className="border-t border-neutral-border bg-white">
         <div className="mx-auto max-w-6xl px-4 py-8 text-sm text-neutral-gray flex flex-col sm:flex-row gap-2 sm:items-center sm:justify-between">
           <div>© {new Date().getFullYear()} {brand.name || (isDemo ? 'Classic Pharmacy' : 'Pharmacy')}. All rights reserved.</div>
-          <div className="opacity-80">Classic Pharmacy</div>
+          <div className="opacity-80">This website done by Medify</div>
         </div>
       </footer>
 

@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
@@ -206,15 +206,12 @@ function TemplateSixProductContent() {
               <span className="text-sm text-slate-400">Stock</span>
               <span className={`text-sm font-semibold ${getTemplate6StockTone(stockStatus)}`}>
                 {getTemplate6StockLabel(stockStatus)}
-                {stockStatus === 'out' ? '' : ` - ${product.stock || 0} units`}
               </span>
             </div>
             {existingQuantityInCart > 0 ? (
               <p className="mt-2 text-xs text-slate-400">Already in cart: {existingQuantityInCart}</p>
             ) : null}
-            {maxAddable > 0 ? (
-              <p className="mt-1 text-xs text-slate-400">You can add up to {maxAddable} more units.</p>
-            ) : null}
+
           </div>
 
           {(product.stock || 0) > 0 ? (

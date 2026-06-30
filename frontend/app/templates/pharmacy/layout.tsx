@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
+import { WhatsAppButton } from '@/components/pharmacy/WhatsAppButton'
 
 import { pharmacyApi, pharmacyProductsApi } from '@/lib/pharmacy'
 import { startPharmacyProductPolling, fetchSyncedProducts, persistProductSnapshot } from '@/lib/pharmacySheetSync'
@@ -43,8 +44,46 @@ function PharmacyTemplatesLayoutContent({ children }: { children: React.ReactNod
   const searchParams = useSearchParams()
   const ownerId = searchParams?.get('owner') || ''
   const isDemo = searchParams?.get('demo') === '1' || searchParams?.get('demo') === 'true'
+  const [resolvedOwnerId, setResolvedOwnerId] = useState('')
   // Keep first render deterministic across server/client to avoid hydration mismatches.
   const [themeSettings, setThemeSettings] = useState(() => normalizePharmacyThemeSettings(null))
+  const pathname = usePathname()
+  const [whatsAppPhone, setWhatsAppPhone] = useState('')
+
+  const templateId = useMemo(() => {
+    const match = pathname?.match(/\/templates\/pharmacy\/(\d+)/)
+    return match ? parseInt(match[1], 10) : null
+  }, [pathname])
+
+  const showWhatsApp = templateId === 1 || templateId === 2 || templateId === 4
+
+  useEffect(() => {
+    const updatePhone = () => {
+      if (isDemo) {
+        if (pathname?.includes('/1')) {
+          setWhatsAppPhone('+1 (555) 123-4567')
+        } else if (pathname?.includes('/2')) {
+          setWhatsAppPhone('+1 (555) 234-5678')
+        } else if (pathname?.includes('/4')) {
+          setWhatsAppPhone('+1 (555) 345-6789')
+        }
+        return
+      }
+      const businessInfo = safeJsonParse<{ contactPhone?: string; contact_phone?: string; phone?: string }>(getSiteItem('businessInfo'))
+      const setup = safeJsonParse<{ phone?: string }>(getSiteItem('pharmacySetup'))
+      const phone = businessInfo?.contactPhone || businessInfo?.contact_phone || businessInfo?.phone || setup?.phone || ''
+      setWhatsAppPhone(phone)
+    }
+
+    updatePhone()
+    window.addEventListener('storage', updatePhone)
+    const interval = setInterval(updatePhone, 1000)
+
+    return () => {
+      window.removeEventListener('storage', updatePhone)
+      clearInterval(interval)
+    }
+  }, [isDemo, pathname])
 
   useEffect(() => {
     const syncThemeFromStorage = () => {
@@ -56,16 +95,29 @@ function PharmacyTemplatesLayoutContent({ children }: { children: React.ReactNod
 
     if (ownerId) {
       setSiteOwnerId(ownerId)
+      setResolvedOwnerId(ownerId)
     }
-
-
 
     const currentUser = getStoredUser()
     if (!ownerId && currentUser?.id) {
       setSiteOwnerId(currentUser.id)
+      setResolvedOwnerId(currentUser.id)
     }
 
-    if (!isDemo) {
+    const localToken = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+    let currentOwnerId = ownerId || getSiteOwnerId()
+    let subdomain = ''
+    if (!currentOwnerId && typeof window !== 'undefined') {
+      const hostname = window.location.hostname
+      if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+        const parts = hostname.split('.')
+        if (parts.length > 1) {
+          subdomain = parts[0]
+        }
+      }
+    }
+
+    if (!isDemo || localToken || currentOwnerId || subdomain) {
       const cachedInfo = safeJsonParse<BusinessInfoSnapshot>(getSiteItem('businessInfo'))
       const token = localStorage.getItem('access_token')
       const apiBase = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:8000/api` : 'http://localhost:8000/api')
@@ -97,31 +149,58 @@ function PharmacyTemplatesLayoutContent({ children }: { children: React.ReactNod
           .catch(() => {
             // Ignore network errors; pages already support local fallbacks.
           })
-      } else {
-        const currentOwnerId = ownerId || getSiteOwnerId()
-        if (currentOwnerId) {
-          void fetch(`${apiBase}/business-info/public_info/?owner_id=${currentOwnerId}`)
-            .then((response) => (response.ok ? response.json() : null))
-            .then((data) => {
-              if (!data?.business_info) return
-              const bi = data.business_info
+      } else if (currentOwnerId) {
+        void fetch(`${apiBase}/business-info/public_info/?owner_id=${currentOwnerId}`)
+          .then((response) => (response.ok ? response.json() : null))
+          .then((data) => {
+            if (!data) return
+            if (data.owner_id) {
+              setSiteOwnerId(data.owner_id)
+              setResolvedOwnerId(data.owner_id)
+            }
 
-              const merged: BusinessInfoSnapshot = {
-                ...(cachedInfo || {}),
-                name: bi.name || cachedInfo?.name || '',
-                about: bi.about || cachedInfo?.about || '',
-                address: bi.address || cachedInfo?.address || '',
-                contactPhone: bi.contact_phone || cachedInfo?.contactPhone || '',
-                workingHours: bi.working_hours || cachedInfo?.workingHours || {},
-                logo: bi.logo_url || bi.logo || cachedInfo?.logo,
-              }
+            const bi = data.business_info || {}
+            const merged: BusinessInfoSnapshot = {
+              ...(cachedInfo || {}),
+              name: bi.name || cachedInfo?.name || '',
+              about: bi.about || cachedInfo?.about || '',
+              address: bi.address || cachedInfo?.address || '',
+              contactPhone: bi.contact_phone || cachedInfo?.contactPhone || '',
+              workingHours: bi.working_hours || cachedInfo?.workingHours || {},
+              logo: bi.logo_url || bi.logo || cachedInfo?.logo,
+            }
 
-              const serialized = JSON.stringify(merged)
-              setSiteItem('businessInfo', serialized)
-              setPublicSiteItem('businessInfo', serialized)
-            })
-            .catch(() => {})
-        }
+            const serialized = JSON.stringify(merged)
+            setSiteItem('businessInfo', serialized)
+            setPublicSiteItem('businessInfo', serialized)
+          })
+          .catch(() => {})
+      } else if (subdomain) {
+        void fetch(`${apiBase}/business-info/public_info/?subdomain=${subdomain}`)
+          .then((response) => (response.ok ? response.json() : null))
+          .then((data) => {
+            if (!data) return
+            if (data.owner_id) {
+              setSiteOwnerId(data.owner_id)
+              setResolvedOwnerId(data.owner_id)
+            }
+
+            const bi = data.business_info || {}
+            const merged: BusinessInfoSnapshot = {
+              ...(cachedInfo || {}),
+              name: bi.name || cachedInfo?.name || '',
+              about: bi.about || cachedInfo?.about || '',
+              address: bi.address || cachedInfo?.address || '',
+              contactPhone: bi.contact_phone || cachedInfo?.contactPhone || '',
+              workingHours: bi.working_hours || cachedInfo?.workingHours || {},
+              logo: bi.logo_url || bi.logo || cachedInfo?.logo,
+            }
+
+            const serialized = JSON.stringify(merged)
+            setSiteItem('businessInfo', serialized)
+            setPublicSiteItem('businessInfo', serialized)
+          })
+          .catch(() => {})
       }
 
       void pharmacyApi
@@ -143,20 +222,22 @@ function PharmacyTemplatesLayoutContent({ children }: { children: React.ReactNod
   }, [isDemo, ownerId])
 
   useEffect(() => {
-    if (isDemo) return
+    const localToken = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+    const finalOwnerId = ownerId || resolvedOwnerId || getSiteOwnerId()
+    if (isDemo && !localToken && !finalOwnerId) return
 
     let stopPolling: (() => void) | undefined
     let active = true
 
     const startLivePolling = async () => {
       const currentUser = getStoredUser()
-      const resolvedOwnerId = ownerId || currentUser?.id || getSiteOwnerId()
+      const targetOwnerId = finalOwnerId || currentUser?.id
       const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
 
       // Always fetch products at least once to ensure non-syncing users still get their products loaded.
       const response = await fetchSyncedProducts({
         authenticated: Boolean(token),
-        ownerId: token ? null : resolvedOwnerId,
+        ownerId: token ? null : targetOwnerId,
       })
       
       if (active && !response.error && response.data) {
@@ -167,8 +248,8 @@ function PharmacyTemplatesLayoutContent({ children }: { children: React.ReactNod
       if (token) {
         const status = await pharmacyProductsApi.getSheetSyncStatus()
         syncEnabled = Boolean(status.data?.google_sheet_sync_enabled)
-      } else if (resolvedOwnerId) {
-        const publicProducts = await pharmacyProductsApi.listPublic(resolvedOwnerId, false)
+      } else if (targetOwnerId) {
+        const publicProducts = await pharmacyProductsApi.listPublic(targetOwnerId, false)
         syncEnabled = Boolean(publicProducts.data?.google_sheet_sync_enabled)
       }
 
@@ -177,7 +258,7 @@ function PharmacyTemplatesLayoutContent({ children }: { children: React.ReactNod
       stopPolling = startPharmacyProductPolling({
         enabled: true,
         authenticated: Boolean(token),
-        ownerId: token ? null : resolvedOwnerId,
+        ownerId: token ? null : targetOwnerId,
         onProducts: () => undefined,
       })
     }
@@ -188,7 +269,7 @@ function PharmacyTemplatesLayoutContent({ children }: { children: React.ReactNod
       active = false
       stopPolling?.()
     }
-  }, [isDemo, ownerId])
+  }, [isDemo, ownerId, resolvedOwnerId])
 
   const themeVariables = useMemo(
     () => getPharmacyThemeCssVariables(themeSettings),
@@ -198,6 +279,9 @@ function PharmacyTemplatesLayoutContent({ children }: { children: React.ReactNod
   return (
     <div className="pharmacy-theme-root" style={themeVariables as React.CSSProperties}>
       {children}
+      {showWhatsApp && whatsAppPhone && (
+        <WhatsAppButton phone={whatsAppPhone} />
+      )}
     </div>
   )
 }

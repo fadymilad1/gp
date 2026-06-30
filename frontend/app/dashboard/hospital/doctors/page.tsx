@@ -515,10 +515,6 @@ function DoctorModal({ mode, initialData, departments, onClose, onSave, saving, 
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Specialty" required>
-                  <input className={INPUT} value={form.specialty} placeholder="e.g. Cardiology"
-                    onChange={e => set('specialty', e.target.value)} />
-                </Field>
                 <Field label="Experience">
                   <input
                     className={INPUT}
@@ -529,13 +525,13 @@ function DoctorModal({ mode, initialData, departments, onClose, onSave, saving, 
                     onChange={e => set('experience', e.target.value)}
                   />
                 </Field>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
                 <Field label="Age">
                   <input className={INPUT} type="number" value={form.age} placeholder="e.g. 45"
                     onChange={e => set('age', e.target.value)} />
                 </Field>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <Field label="Gender">
                   <select className={INPUT} value={form.gender} onChange={e => set('gender', e.target.value)}>
                     <option value="">-- Select gender --</option>
@@ -543,12 +539,11 @@ function DoctorModal({ mode, initialData, departments, onClose, onSave, saving, 
                     <option value="Female">Female</option>
                   </select>
                 </Field>
+                <Field label="Email">
+                  <input className={INPUT} type="email" value={form.email} placeholder="doctor@hospital.com"
+                    onChange={e => set('email', e.target.value)} />
+                </Field>
               </div>
-
-              <Field label="Email">
-                <input className={INPUT} type="email" value={form.email} placeholder="doctor@hospital.com"
-                  onChange={e => set('email', e.target.value)} />
-              </Field>
 
               <Field label="Bio">
                 <textarea className={INPUT + ' resize-none'} rows={3} value={form.bio}
@@ -963,9 +958,19 @@ export default function HospitalDoctorsPage() {
     gender?: string;
     email?: string;
   } => {
+    let resolvedSpecialty = '';
+    if (form.department === '__new__') {
+      resolvedSpecialty = form.newDeptName.trim();
+    } else {
+      const dept = departments.find(d => d.id === form.department);
+      if (dept) {
+        resolvedSpecialty = dept.name;
+      }
+    }
+
     const shared: any = {
       name: form.name.trim(),
-      specialty: form.specialty.trim(),
+      specialty: resolvedSpecialty || 'General',
       bio,
       department: deptId,
       title: form.title.trim(),
@@ -1011,7 +1016,6 @@ export default function HospitalDoctorsPage() {
   // ── Add doctor ─────────────────────────────────────────────────────────────
   const handleAdd = async (form: DoctorFormData) => {
     if (!form.name.trim()) { setModalError('Name is required.'); return; }
-    if (!form.specialty.trim()) { setModalError('Specialty is required.'); return; }
     setModalSaving(true);
     setModalError(null);
     if (!validateAvailability(form)) { setModalSaving(false); return; }
