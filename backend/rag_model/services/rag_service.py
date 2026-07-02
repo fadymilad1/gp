@@ -1,7 +1,7 @@
 import json
 import logging
 import re
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, Tuple
 from .local_models import generate_text
 from .vector_store import VectorStoreSingleton
 
@@ -26,6 +26,63 @@ def _calculate_keyword_overlap(query: str, text: str) -> int:
         return 0
     return len(query_words.intersection(text_words))
 
+
+_SENTENCE_STARTER_STOPWORDS = {"i", "is", "are", "do", "does", "can", "what", "which", "tell"}
+_LOWERCASE_NAME_PATTERN = re.compile(r"(?:about|for|is)\s+([a-zA-Z][a-zA-Z\-]{2,})\b", re.IGNORECASE)
+
+
+def _extract_candidate_drug_name(query: str) -> Optional[str]:
+    """
+    Best-effort, local (no API call) extraction of a medicine name mentioned in a
+    free-text question, e.g. "Tell me about Panadol" -> "Panadol".
+
+    Returns None when no plausible medicine name can be identified (a vague/generic
+    question) so callers can fall through to the normal grounded-generation flow.
+    """
+    tokens = re.findall(r"[A-Za-z][A-Za-z0-9\-]*", query)
+
+    candidate_tokens: List[str] = []
+    for index, token in enumerate(tokens):
+        is_capitalized = token[0].isupper()
+        is_sentence_starter = index == 0 or token.lower() in _SENTENCE_STARTER_STOPWORDS
+        if is_capitalized and not is_sentence_starter:
+            candidate_tokens.append(token)
+        elif candidate_tokens:
+            # Stop joining as soon as the run of capitalized tokens ends.
+            break
+
+    if candidate_tokens:
+        candidate = " ".join(candidate_tokens)
+    else:
+        match = _LOWERCASE_NAME_PATTERN.search(query)
+        candidate = match.group(1) if match else None
+
+    if not candidate:
+        return None
+
+    candidate = candidate.strip().strip(".,!?;:-").rstrip("'s").strip()
+    return candidate or None
+
+
+def _drug_field_matches_candidate(candidate: str, retrieved: List[Tuple[Dict[str, Any], float]]) -> bool:
+    """
+    Name-anchored overlap check: does the candidate medicine name share any token
+    with the 'drug' metadata field of any retrieved chunk? This is deliberately
+    separate from _calculate_keyword_overlap, which scores free text for reranking
+    rather than checking a specific structured name field.
+    """
+    candidate_tokens = set(re.findall(r"\w+", candidate.lower()))
+    if not candidate_tokens:
+        return False
+
+    for meta, _dist in retrieved:
+        drug_name = meta.get("drug") or (meta.get("meta") or {}).get("brand_name") or ""
+        drug_tokens = set(re.findall(r"\w+", drug_name.lower()))
+        if candidate_tokens & drug_tokens:
+            return True
+    return False
+
+
 def ask_rag(query: str) -> Dict[str, Any]:
     """
     RAG pipeline: Embed -> Search -> Rerank -> Build Context -> Generate
@@ -45,7 +102,26 @@ def ask_rag(query: str) -> Dict[str, Any]:
             "model": "mistral-api",
             "confidence_score": 0.0
         }
-        
+
+    # Deterministic "not found" gate: if the question names a specific medicine
+    # (e.g. "Tell me about Panadol") and none of the retrieved chunks' drug names
+    # share any token with it, return a fixed template instead of letting the LLM
+    # free-write an inconsistent "I don't have that" answer. Skipped entirely for
+    # vague/generic questions where no candidate name can be extracted.
+    candidate_name = _extract_candidate_drug_name(query)
+    if candidate_name and not _drug_field_matches_candidate(candidate_name, retrieved):
+        logger.info(f"Deterministic not-found gate triggered for candidate '{candidate_name}'.")
+        return {
+            "answer": (
+                f"Sorry, we couldn't find any information about {candidate_name} in our records. "
+                "Please check the spelling, or ask your pharmacist for more details.\n\n"
+                "This is not medical advice."
+            ),
+            "sources": [],
+            "model": "gemini-api",
+            "confidence_score": 0.0,
+        }
+
     # Lightweight reranking based on keyword overlap
     # Sort by a combined metric: higher overlap is better, lower distance is better.
     # Since Faiss L2 distance on normalized vectors relates to cosine similarity (lower is better),
