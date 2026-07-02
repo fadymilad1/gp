@@ -40,7 +40,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Copy root monorepo config files first so they don't bust the layer below
 # (these rarely change)
 # Copy backend requirements — the most frequently updated dependency file
-COPY backend/requirements.txt .
+COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch && \
     pip install --no-cache-dir -r requirements.txt
@@ -63,7 +63,7 @@ COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Copy application code
-COPY backend/ .
+COPY . .
 
 # Create persistent data directory
 RUN mkdir -p /app/data
