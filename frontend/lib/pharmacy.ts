@@ -386,3 +386,38 @@ export const pharmacyProductsApi = {
     return { data: response.data }
   },
 }
+
+export type PharmacyStaff = {
+  id: string
+  name: string
+  email: string
+  status: 'Active' | 'Disabled'
+  is_active: boolean
+  created_at: string
+}
+
+export type PharmacyStaffPayload = {
+  name: string
+  email: string
+  password?: string
+  is_active?: boolean
+}
+
+export const pharmacyStaffApi = {
+  list: async () => request<PharmacyStaff[]>('/pharmacy/staff/', { method: 'GET' }),
+  create: async (payload: PharmacyStaffPayload) =>
+    request<PharmacyStaff>('/pharmacy/staff/', {
+      method: 'POST',
+      body: toJsonBody(payload),
+    }),
+  update: async (staffId: string, payload: Partial<PharmacyStaffPayload>) =>
+    request<PharmacyStaff>(`/pharmacy/staff/${staffId}/`, {
+      method: 'PATCH',
+      body: toJsonBody(payload),
+    }),
+  remove: async (staffId: string) =>
+    request<void>(`/pharmacy/staff/${staffId}/`, {
+      method: 'DELETE',
+    }),
+}
+

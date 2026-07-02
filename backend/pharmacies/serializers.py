@@ -2,7 +2,19 @@ from rest_framework import serializers
 from decimal import Decimal
 import json
 from django.core.validators import URLValidator
-from pharmacies.models import Pharmacy, PharmacyOrder, PharmacyOrderItem, PharmacyTemplatePurchase, Product
+from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from pharmacies.models import (
+    Pharmacy,
+    PharmacyOrder,
+    PharmacyOrderItem,
+    PharmacyTemplatePurchase,
+    Product,
+    PharmacyStaff,
+)
+
+User = get_user_model()
+
 
 
 http_image_url_validator = URLValidator(schemes=['http', 'https'])
@@ -347,3 +359,104 @@ class CancelTemplatePurchaseSerializer(serializers.Serializer):
     """Input serializer for template purchase cancellation."""
 
     template_id = serializers.IntegerField(min_value=1)
+
+
+class PharmacyStaffSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source='user.name', required=True)
+    email = serializers.EmailField(source='user.email', required=True)
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    status = serializers.SerializerMethodField()
+    is_active = serializers.BooleanField(source='user.is_active', required=False, default=True)
+    created_at = serializers.DateTimeField(read_only=True)
+
+    class Meta:
+        model = PharmacyStaff
+        fields = ['id', 'name', 'email', 'password', 'status', 'is_active', 'created_at']
+
+    def get_status(self, obj):
+        return 'Active' if obj.user.is_active else 'Disabled'
+
+    def validate_email(self, value):
+        email = value.strip().lower()
+        qs = User.objects.filter(email__iexact=email)
+        if self.instance:
+            qs = qs.exclude(id=self.instance.user.id)
+        if qs.exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        return email
+
+    def validate(self, attrs):
+        # Validate password on creation
+        if not self.instance:
+            password = self.initial_data.get('password')
+            if not password:
+                raise serializers.ValidationError({"password": "Password is required for new staff members."})
+            validate_password(password)
+        else:
+            # Validate password on update only if it is provided
+            password = self.initial_data.get('password')
+            if password:
+                validate_password(password)
+                
+        return attrs
+
+    def create(self, validated_data):
+        user_data = validated_data.pop('user', {})
+        email = user_data.get('email').strip().lower()
+        name = user_data.get('name')
+        is_active = user_data.get('is_active', True)
+        password = self.initial_data.get('password')
+
+        request_user = self.context['request'].user
+        
+        # Lazy load context dependencies
+        from core.models import WebsiteSetup
+        from pharmacies.views import _default_subdomain, _build_default_pharmacy_name
+        
+        website_setup, _ = WebsiteSetup.objects.get_or_create(
+            user=request_user,
+            defaults={'subdomain': _default_subdomain(request_user.email)},
+        )
+        pharmacy, _ = Pharmacy.objects.get_or_create(
+            user=request_user,
+            defaults={
+                'website_setup': website_setup,
+                'name': _build_default_pharmacy_name(request_user),
+                'template_id': website_setup.template_id,
+            },
+        )
+
+        user = User.objects.create_user(
+            username=email,
+            email=email,
+            password=password,
+            name=name,
+            business_type='pharmacy',
+            is_active=is_active
+        )
+
+        staff = PharmacyStaff.objects.create(
+            user=user,
+            pharmacy=pharmacy
+        )
+        return staff
+
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop('user', {})
+        user = instance.user
+
+        if 'name' in user_data:
+            user.name = user_data['name']
+        if 'email' in user_data:
+            user.email = user_data['email'].strip().lower()
+            user.username = user.email
+        if 'is_active' in user_data:
+            user.is_active = user_data['is_active']
+        
+        password = self.initial_data.get('password')
+        if password:
+            user.set_password(password)
+
+        user.save()
+        return instance
+

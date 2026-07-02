@@ -20,7 +20,14 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 
 from core.models import WebsiteSetup
-from pharmacies.models import Pharmacy, PharmacyOrder, PharmacyOrderItem, PharmacyTemplatePurchase, Product
+from pharmacies.models import (
+    Pharmacy,
+    PharmacyOrder,
+    PharmacyOrderItem,
+    PharmacyTemplatePurchase,
+    Product,
+    PharmacyStaff,
+)
 from pharmacies.google_sheet import (
     GoogleSheetAccessError,
     GoogleSheetWriteError,
@@ -44,6 +51,7 @@ from pharmacies.serializers import (
     ProductConnectGoogleSheetSerializer,
     ProductCreateUpdateSerializer,
     ProductSerializer,
+    PharmacyStaffSerializer,
 )
 
 
@@ -1167,12 +1175,20 @@ class PharmacyOrderViewSet(viewsets.ReadOnlyModelViewSet):
         return super().get_permissions()
 
     def get_queryset(self):
-        if not self.request.user.is_authenticated:
+        user = self.request.user
+        if not user.is_authenticated:
             return PharmacyOrder.objects.none()
 
+        # If user is a staff member, return orders for their staff pharmacy
+        if hasattr(user, 'pharmacy_staff') and user.pharmacy_staff:
+            return PharmacyOrder.objects.select_related('pharmacy', 'website_setup').prefetch_related('items').filter(
+                pharmacy=user.pharmacy_staff.pharmacy
+            ).distinct().order_by('-created_at')
+
         return PharmacyOrder.objects.select_related('pharmacy', 'website_setup').prefetch_related('items').filter(
-            Q(pharmacy__user=self.request.user) | Q(website_setup__user=self.request.user)
+            Q(pharmacy__user=user) | Q(website_setup__user=user)
         ).distinct().order_by('-created_at')
+
 
     def _get_unseen_confirmed_orders_queryset(self):
         return self.get_queryset().filter(
@@ -1431,3 +1447,40 @@ class PharmacyOrderViewSet(viewsets.ReadOnlyModelViewSet):
             )
 
         return Response({'count': queryset.count(), 'orders': payload})
+
+
+class PharmacyStaffViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PharmacyStaffSerializer
+    pagination_class = None
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        # Check if the user is a staff member. Staff members should not manage staff!
+        if hasattr(request.user, 'pharmacy_staff') and request.user.pharmacy_staff:
+            self.permission_denied(request, message="Staff members cannot access staff management.")
+
+    def get_queryset(self):
+        # We only return staff members belonging to the current user's pharmacy
+        request_user = self.request.user
+        
+        # Ensure pharmacy profile exists for the owner
+        website_setup, _ = WebsiteSetup.objects.get_or_create(
+            user=request_user,
+            defaults={'subdomain': _default_subdomain(request_user.email)},
+        )
+        pharmacy, _ = Pharmacy.objects.get_or_create(
+            user=request_user,
+            defaults={
+                'website_setup': website_setup,
+                'name': _build_default_pharmacy_name(request_user),
+                'template_id': website_setup.template_id,
+            },
+        )
+
+        return PharmacyStaff.objects.filter(pharmacy=pharmacy).select_related('user').order_by('-created_at')
+
+    def perform_destroy(self, instance):
+        instance.user.delete()
+
+

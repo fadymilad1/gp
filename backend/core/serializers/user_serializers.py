@@ -8,10 +8,95 @@ ACCOUNT_DELETE_CONFIRMATION_TEXT = 'DELETE'
 
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for User model"""
+    is_staff = serializers.SerializerMethodField()
+    pharmacy_id = serializers.SerializerMethodField()
+    pharmacy_name = serializers.SerializerMethodField()
+    pharmacy_logo = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'email', 'name', 'business_type', 'google_oauth_id', 'is_onboarding_completed', 'created_at']
+        fields = [
+            'id',
+            'email',
+            'name',
+            'business_type',
+            'google_oauth_id',
+            'is_onboarding_completed',
+            'created_at',
+            'is_staff',
+            'pharmacy_id',
+            'pharmacy_name',
+            'pharmacy_logo',
+        ]
         read_only_fields = ['id', 'created_at']
+
+    def get_is_staff(self, obj):
+        return hasattr(obj, 'pharmacy_staff') and obj.pharmacy_staff is not None
+
+    def get_pharmacy_id(self, obj):
+        if hasattr(obj, 'pharmacy_staff') and obj.pharmacy_staff:
+            return str(obj.pharmacy_staff.pharmacy.id)
+        return None
+
+    def _resolve_pharmacy(self, obj):
+        if hasattr(obj, 'pharmacy_staff') and obj.pharmacy_staff:
+            return obj.pharmacy_staff.pharmacy
+        if hasattr(obj, 'pharmacy_profile') and obj.pharmacy_profile:
+            return obj.pharmacy_profile
+        return None
+
+    def get_pharmacy_name(self, obj):
+        pharmacy = self._resolve_pharmacy(obj)
+        if not pharmacy:
+            return None
+
+        # 1. Try to get from BusinessInfo (linked to WebsiteSetup)
+        try:
+            if pharmacy.website_setup and hasattr(pharmacy.website_setup, 'business_info'):
+                binfo = pharmacy.website_setup.business_info
+                if binfo and binfo.name:
+                    return binfo.name
+        except Exception:
+            pass
+
+        # 2. Fallback to Pharmacy model itself
+        if pharmacy.name:
+            return pharmacy.name
+
+        # 3. Fallback to owner name
+        if pharmacy.user:
+            return pharmacy.user.name
+
+        return None
+
+    def get_pharmacy_logo(self, obj):
+        pharmacy = self._resolve_pharmacy(obj)
+        if not pharmacy:
+            return None
+
+        # 1. Try to get from BusinessInfo (linked to WebsiteSetup)
+        try:
+            if pharmacy.website_setup and hasattr(pharmacy.website_setup, 'business_info'):
+                binfo = pharmacy.website_setup.business_info
+                if binfo and binfo.logo:
+                    request = self.context.get('request')
+                    if request:
+                        return request.build_absolute_uri(binfo.logo.url)
+                    return binfo.logo.url
+        except Exception:
+            pass
+
+        # 2. Fallback to Pharmacy model itself
+        if pharmacy.logo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(pharmacy.logo.url)
+            return pharmacy.logo.url
+
+        return None
+
+
+
 
 
 class SignupSerializer(serializers.ModelSerializer):

@@ -23,6 +23,7 @@ import {
   LuLogOut,
   LuX,
   LuSparkles,
+  LuUsers,
 } from 'react-icons/lu'
 import { BrandLogo } from '@/components/pharmacy/BrandLogo'
 import { logoutUser } from '@/lib/auth'
@@ -49,6 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ userType, isOpen = true, onClo
   const [brandLogo, setBrandLogo] = useState<string | null>(null)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [unseenOrdersCount, setUnseenOrdersCount] = useState(0)
+  const [isStaff, setIsStaff] = useState(false)
 
   const loadBusinessInfo = useCallback((resolvedUserType: 'hospital' | 'pharmacy') => {
     let resolvedBrandName = 'Medify'
@@ -59,8 +61,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ userType, isOpen = true, onClo
       try {
         const user = JSON.parse(userData) as any
         if (resolvedUserType === 'pharmacy') {
-          resolvedBrandName = user.name || 'Medify'
-          resolvedBrandLogo = normalizeLogoUrl(user.logo_url || user.logo)
+          resolvedBrandName = user.pharmacy_name || user.name || 'Medify'
+          resolvedBrandLogo = normalizeLogoUrl(user.pharmacy_logo || user.logo_url || user.logo)
         }
       } catch (e) {
         // ignore
@@ -95,6 +97,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ userType, isOpen = true, onClo
       try {
         const user = JSON.parse(userData) as any
         resolvedUserType = user.businessType || user.business_type || 'hospital'
+        setIsStaff(!!(user.is_staff || user.is_staff === 'true'))
       } catch (e) {
         resolvedUserType = 'hospital'
       }
@@ -160,33 +163,38 @@ export const Sidebar: React.FC<SidebarProps> = ({ userType, isOpen = true, onClo
 
   const dashboardHref = currentUserType === 'pharmacy' ? '/dashboard/pharmacy' : '/dashboard/hospital'
 
-  const menuItems: SidebarItem[] = [
-    { label: 'Dashboard', icon: <LuHome />, href: dashboardHref },
-    ...(currentUserType === 'hospital'
-      ? [
-        { label: 'My Website', icon: <LuGlobe />, href: '/dashboard/business-info' },
-        { label: 'Hospital Setup', icon: <LuBuilding />, href: '/dashboard/hospital/setup' },
-        { label: 'Customization', icon: <LuLayout />, href: '/dashboard/hospital/customization' },
-        { label: 'Departments', icon: <LuLayers />, href: '/dashboard/hospital/departments' },
-        { label: 'Doctors', icon: <LuStethoscope />, href: '/dashboard/hospital/doctors' },
-        { label: 'Appointments', icon: <LuCalendarCheck />, href: '/dashboard/hospital/appointments' },
-        { label: 'Patients', icon: <LuInfo />, href: '/dashboard/hospital/patients' },
-        { label: 'Reviews', icon: <LuMessageSquare />, href: '/dashboard/hospital/reviews' },
-        { label: 'AI Assistant', icon: <LuSparkles />, href: '/dashboard/hospital/ai-assistant' },
-      ]
-      : []),
-    ...(currentUserType === 'pharmacy'
-      ? [
-        { label: 'Create Website', icon: <LuGlobe />, href: '/dashboard/pharmacy/setup' },
-        { label: 'Templates', icon: <LuLayoutTemplate />, href: '/dashboard/pharmacy/templates' },
-        { label: 'Business Info', icon: <LuStore />, href: '/dashboard/business-info' },
-        { label: 'Products', icon: <LuPill />, href: '/dashboard/pharmacy/products' },
-        { label: 'Orders', icon: <LuShoppingCart />, href: '/dashboard/orders' },
-        { label: 'AI Assistant', icon: <LuSparkles />, href: '/dashboard/pharmacy/ai-assistant' },
-        { label: 'Settings', icon: <LuSettings />, href: '/dashboard/settings' },
-      ]
-      : []),
-  ]
+  const menuItems: SidebarItem[] = isStaff
+    ? [
+      { label: 'Orders', icon: <LuShoppingCart />, href: '/dashboard/orders' }
+    ]
+    : [
+      { label: 'Dashboard', icon: <LuHome />, href: dashboardHref },
+      ...(currentUserType === 'hospital'
+        ? [
+          { label: 'My Website', icon: <LuGlobe />, href: '/dashboard/business-info' },
+          { label: 'Hospital Setup', icon: <LuBuilding />, href: '/dashboard/hospital/setup' },
+          { label: 'Customization', icon: <LuLayout />, href: '/dashboard/hospital/customization' },
+          { label: 'Departments', icon: <LuLayers />, href: '/dashboard/hospital/departments' },
+          { label: 'Doctors', icon: <LuStethoscope />, href: '/dashboard/hospital/doctors' },
+          { label: 'Appointments', icon: <LuCalendarCheck />, href: '/dashboard/hospital/appointments' },
+          { label: 'Patients', icon: <LuInfo />, href: '/dashboard/hospital/patients' },
+          { label: 'Reviews', icon: <LuMessageSquare />, href: '/dashboard/hospital/reviews' },
+          { label: 'AI Assistant', icon: <LuSparkles />, href: '/dashboard/hospital/ai-assistant' },
+        ]
+        : []),
+      ...(currentUserType === 'pharmacy'
+        ? [
+          { label: 'Create Website', icon: <LuGlobe />, href: '/dashboard/pharmacy/setup' },
+          { label: 'Templates', icon: <LuLayoutTemplate />, href: '/dashboard/pharmacy/templates' },
+          { label: 'Business Info', icon: <LuStore />, href: '/dashboard/business-info' },
+          { label: 'Products', icon: <LuPill />, href: '/dashboard/pharmacy/products' },
+          { label: 'Orders', icon: <LuShoppingCart />, href: '/dashboard/orders' },
+          { label: 'Staff Management', icon: <LuUsers />, href: '/dashboard/pharmacy/staff' },
+          { label: 'AI Assistant', icon: <LuSparkles />, href: '/dashboard/pharmacy/ai-assistant' },
+          { label: 'Settings', icon: <LuSettings />, href: '/dashboard/settings' },
+        ]
+        : []),
+    ]
 
   const typeLabel = currentUserType === 'pharmacy' ? 'Pharmacy' : 'Hospital'
   const stripHospitalWord = (value: string) =>
