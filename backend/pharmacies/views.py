@@ -888,6 +888,9 @@ class ProductViewSet(viewsets.ModelViewSet):
         pharmacy.google_sheet_last_synced_at = timezone.now()
         pharmacy.save(update_fields=['google_sheet_last_synced_at', 'updated_at'])
 
+        # Push back any manually added/edited products to Google Sheets to ensure bidirectional sync
+        self._maybe_push_to_google_sheet(pharmacy)
+
         return {
             'synced': True,
             'created_count': result.get('created_count', 0),
