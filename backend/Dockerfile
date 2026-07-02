@@ -78,7 +78,7 @@ RUN chown -R django:django /app
 USER django
 
 # Persistent volume for uploads, SQLite fallback, logs
-VOLUME ["/app/data"]
+#VOLUME ["/app/data"]
 
 EXPOSE 8000
 
