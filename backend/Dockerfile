@@ -42,8 +42,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Copy backend requirements — the most frequently updated dependency file
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
 
 # ---- Runtime stage ----
 FROM python:3.12-slim AS runtime
@@ -82,7 +81,4 @@ USER django
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD python -c "import http.client; c=http.client.HTTPConnection('localhost',8000,timeout=5); c.request('GET','/'); r=c.getresponse(); exit(0) if r.status < 500 else exit(1)"
-
-CMD ["gunicorn", "medify_backend.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "4", "--timeout", "120"]
+CMD gunicorn medify_backend.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 4 --timeout 120
