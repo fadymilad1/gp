@@ -130,3 +130,46 @@ class DoctorCrudTests(TestCase):
             'department': str(other_dept.id),
         }, format='json')
         self.assertEqual(response.status_code, 400)
+
+    def test_multi_tenant_data_isolation(self):
+        # Create User B (other tenant)
+        other_user = User.objects.create_user(
+            username='tenantb',
+            email='tenantb@example.com',
+            password='testpass123',
+            name='Tenant B',
+            business_type='hospital',
+        )
+        other_setup = WebsiteSetup.objects.create(user=other_user, subdomain='tenantb-hospital')
+        other_dept = Department.objects.create(website_setup=other_setup, name='Pediatrics')
+        
+        # Create a doctor belonging to User B
+        other_doctor = Doctor.objects.create(
+            website_setup=other_setup,
+            department=other_dept,
+            name='Dr. Tenant B',
+            specialty='Pediatrics',
+        )
+
+        # Authenticated as User A (self.client), try to GET the list of doctors
+        list_response = self.client.get(self.list_url)
+        results = list_response.data.get('results', list_response.data)
+        # Should NOT contain User B's doctor
+        for doctor_data in results:
+            self.assertNotEqual(doctor_data['id'], str(other_doctor.id))
+
+        # Try to GET details of User B's doctor
+        detail_url = f'{self.list_url}{other_doctor.id}/'
+        get_detail_response = self.client.get(detail_url)
+        self.assertEqual(get_detail_response.status_code, 404)
+
+        # Try to PATCH User B's doctor
+        patch_response = self.client.patch(detail_url, {'name': 'Hacked Name'}, format='json')
+        self.assertEqual(patch_response.status_code, 404)
+
+        # Try to DELETE User B's doctor
+        delete_response = self.client.delete(detail_url)
+        self.assertEqual(delete_response.status_code, 404)
+        
+        # Verify doctor B was NOT deleted in the database
+        self.assertTrue(Doctor.objects.filter(id=other_doctor.id).exists())

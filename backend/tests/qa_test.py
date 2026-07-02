@@ -32,8 +32,11 @@ def run_tests():
     doctor, _ = Doctor.objects.get_or_create(website_setup=setup, department=dept, name='Dr. Smith', specialty='Heart', is_active=True)
 
     today = datetime.now()
-    today_weekday = today.weekday()
-    model_weekday = (today_weekday + 1) % 7
+    # To prevent tests from failing when run late in the evening (after working hours),
+    # we target tomorrow's date for generating test slots.
+    test_date = today + timedelta(days=1)
+    test_date_weekday = test_date.weekday()
+    model_weekday = (test_date_weekday + 1) % 7
     
     DoctorSchedule.objects.filter(doctor=doctor).delete()
     DoctorSchedule.objects.create(
@@ -46,7 +49,7 @@ def run_tests():
 
     base_url = 'http://127.0.0.1:8000/api/hospital'
     subdomain = 'qatest'
-    date_str = today.strftime('%Y-%m-%d')
+    date_str = test_date.strftime('%Y-%m-%d')
     doc_id = str(doctor.id)
 
     print("\n--- PART 1: PUBLIC APIs ---")
@@ -59,7 +62,7 @@ def run_tests():
     
     res = requests.get(f"{base_url}/public/departments/?subdomain={subdomain}")
     print(f"GET Departments: {res.status_code}")
-
+ 
     res = requests.get(f"{base_url}/public/doctors/?subdomain=invalid_subdomain_xyz")
     print(f"GET Doctors (Invalid Subdomain): {res.status_code}")
 
@@ -68,9 +71,9 @@ def run_tests():
     print(f"GET Slots (Valid Day): {res.status_code}, Found: {len(res.json().get('slots', []))} slots")
     slots = res.json().get('slots', [])
     
-    # Non-working day
-    tomorrow = today + timedelta(days=1)
-    tomorrow_str = tomorrow.strftime('%Y-%m-%d')
+    # Non-working day (day after the test date)
+    non_working_day = test_date + timedelta(days=1)
+    tomorrow_str = non_working_day.strftime('%Y-%m-%d')
     res = requests.get(f"{base_url}/booking/available_slots/?doctor_id={doc_id}&date={tomorrow_str}")
     print(f"GET Slots (Non-working Day): {res.status_code}, Found: {len(res.json().get('slots', []))} slots")
     

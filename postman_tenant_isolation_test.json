@@ -1,0 +1,405 @@
+{
+	"info": {
+		"_postman_id": "845c43d9-9524-4fbb-a128-d7b172a170bb",
+		"name": "Medify Multi-Tenant Isolation Test",
+		"description": "Automated requests to verify that Tenant B cannot access or modify resources belonging to Tenant A.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Signup Tenant A",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const uniqueId = Date.now();",
+							"pm.collectionVariables.set(\"tenant_a_email\", `tenanta_${uniqueId}@example.com`);",
+							"pm.collectionVariables.set(\"tenant_a_username\", `tenanta_${uniqueId}`);",
+							"pm.collectionVariables.set(\"tenant_a_subdomain\", `tenanta-hospital-${uniqueId}`);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"{{tenant_a_email}}\",\n    \"password\": \"TenantAPass123\",\n    \"password_confirm\": \"TenantAPass123\",\n    \"name\": \"Tenant A Admin\",\n    \"business_type\": \"hospital\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/auth/signup/",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"auth",
+						"signup",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "2. Login Tenant A",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const responseJson = pm.response.json();",
+							"const token = (responseJson.tokens && responseJson.tokens.access) || responseJson.access;",
+							"if (token) {",
+							"    pm.collectionVariables.set(\"tenant_a_token\", token);",
+							"    console.log(\"Saved Tenant A Token!\");",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"{{tenant_a_email}}\",\n    \"password\": \"TenantAPass123\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/auth/login/",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"auth",
+						"login",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "3. Tenant A Creates a Department",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const responseJson = pm.response.json();",
+							"if (responseJson.id) {",
+							"    pm.collectionVariables.set(\"tenant_a_department_id\", responseJson.id);",
+							"    console.log(\"Saved Tenant A Department ID:\", responseJson.id);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{tenant_a_token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Cardiology\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/hospital/admin/departments/",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"hospital",
+						"admin",
+						"departments",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "4. Tenant A Creates a Doctor",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const responseJson = pm.response.json();",
+							"if (responseJson.id) {",
+							"    pm.collectionVariables.set(\"tenant_a_doctor_id\", responseJson.id);",
+							"    console.log(\"Saved Tenant A Doctor ID:\", responseJson.id);",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{tenant_a_token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"name\": \"Dr. Jane Tenant A\",\n    \"specialty\": \"Cardiology\",\n    \"department\": \"{{tenant_a_department_id}}\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/hospital/admin/doctors/",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"hospital",
+						"admin",
+						"doctors",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "5. Signup Tenant B",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const uniqueId = Date.now() + 1;",
+							"pm.collectionVariables.set(\"tenant_b_email\", `tenantb_${uniqueId}@example.com`);",
+							"pm.collectionVariables.set(\"tenant_b_username\", `tenantb_${uniqueId}`);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"{{tenant_b_email}}\",\n    \"password\": \"TenantBPass123\",\n    \"password_confirm\": \"TenantBPass123\",\n    \"name\": \"Tenant B Admin\",\n    \"business_type\": \"hospital\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/auth/signup/",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"auth",
+						"signup",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "6. Login Tenant B",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const responseJson = pm.response.json();",
+							"const token = (responseJson.tokens && responseJson.tokens.access) || responseJson.access;",
+							"if (token) {",
+							"    pm.collectionVariables.set(\"tenant_b_token\", token);",
+							"    console.log(\"Saved Tenant B Token!\");",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"{{tenant_b_email}}\",\n    \"password\": \"TenantBPass123\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/auth/login/",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"auth",
+						"login",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "7. Tenant B Tries to GET Tenant A's Doctor (Should Fail 404)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 404 Not Found (Data Isolation Works!)\", function () {",
+							"    pm.response.to.have.status(404);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{tenant_b_token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/hospital/admin/doctors/{{tenant_a_doctor_id}}/",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"hospital",
+						"admin",
+						"doctors",
+						"{{tenant_a_doctor_id}}",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "8. Tenant B Tries to DELETE Tenant A's Doctor (Should Fail 404)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 404 Not Found (Write Isolation Works!)\", function () {",
+							"    pm.response.to.have.status(404);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{tenant_b_token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/hospital/admin/doctors/{{tenant_a_doctor_id}}/",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"hospital",
+						"admin",
+						"doctors",
+						"{{tenant_a_doctor_id}}",
+						""
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://127.0.0.1:8000"
+		},
+		{
+			"key": "tenant_a_token",
+			"value": ""
+		},
+		{
+			"key": "tenant_b_token",
+			"value": ""
+		},
+		{
+			"key": "tenant_a_department_id",
+			"value": ""
+		},
+		{
+			"key": "tenant_a_doctor_id",
+			"value": ""
+		},
+		{
+			"key": "tenant_a_email",
+			"value": ""
+		},
+		{
+			"key": "tenant_a_username",
+			"value": ""
+		},
+		{
+			"key": "tenant_a_subdomain",
+			"value": ""
+		},
+		{
+			"key": "tenant_b_email",
+			"value": ""
+		},
+		{
+			"key": "tenant_b_username",
+			"value": ""
+		}
+	]
+}
