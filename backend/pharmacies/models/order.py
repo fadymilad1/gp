@@ -12,6 +12,7 @@ class PharmacyOrder(models.Model):
     class Status(models.TextChoices):
         PENDING = 'pending', 'Pending'
         PROCESSING = 'processing', 'Processing'
+        CONFIRMED = 'confirmed', 'Confirmed'
         COMPLETED = 'completed', 'Completed'
         CANCELLED = 'cancelled', 'Cancelled'
 
@@ -57,6 +58,7 @@ class PharmacyOrder(models.Model):
 
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     status_updated_at = models.DateTimeField(auto_now_add=True)
+    confirmation_email_sent = models.BooleanField(default=False)
 
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     delivery_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -76,6 +78,27 @@ class PharmacyOrder(models.Model):
                 name='pharmacy_order_website_client_request_unique',
             )
         ]
+
+    def save(self, *args, **kwargs):
+        is_new = self._state.adding
+        old_status = None
+        if not is_new and self.pk:
+            try:
+                old_status = PharmacyOrder.objects.filter(pk=self.pk).values_list('status', flat=True).first()
+            except Exception:
+                pass
+
+        super().save(*args, **kwargs)
+
+        # Trigger confirmation email if status is changed to CONFIRMED
+        if (
+            self.status == self.Status.CONFIRMED
+            and (is_new or old_status != self.Status.CONFIRMED)
+            and not getattr(self, 'confirmation_email_sent', False)
+        ):
+            from pharmacies.tasks import send_order_confirmation_email
+            from django.db import transaction
+            transaction.on_commit(lambda: send_order_confirmation_email(self.id))
 
     def __str__(self):
         return self.order_number

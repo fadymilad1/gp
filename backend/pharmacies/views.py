@@ -1415,6 +1415,7 @@ class PharmacyOrderViewSet(viewsets.ReadOnlyModelViewSet):
                 'total': queryset.count(),
                 'pending': queryset.filter(status=PharmacyOrder.Status.PENDING).count(),
                 'processing': queryset.filter(status=PharmacyOrder.Status.PROCESSING).count(),
+                'confirmed': queryset.filter(status=PharmacyOrder.Status.CONFIRMED).count(),
                 'completed': queryset.filter(status=PharmacyOrder.Status.COMPLETED).count(),
                 'cancelled': queryset.filter(status=PharmacyOrder.Status.CANCELLED).count(),
             }

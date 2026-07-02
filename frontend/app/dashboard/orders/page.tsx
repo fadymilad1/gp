@@ -30,7 +30,7 @@ import {
 } from '@/lib/pharmacyOrders'
 
 
-type DashboardOrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled'
+type DashboardOrderStatus = 'pending' | 'processing' | 'confirmed' | 'completed' | 'cancelled'
 
 type DashboardOrder = {
   id: string
@@ -102,6 +102,11 @@ const STATUS_CONFIG = {
     bg: 'bg-blue-50 text-blue-700 border border-blue-200',
     icon: <FiPackage size={12} />,
   },
+  confirmed: {
+    label: 'Confirmed',
+    bg: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
+    icon: <FiTruck size={12} />,
+  },
   completed: {
     label: 'Completed',
     bg: 'bg-green-50 text-green-700 border border-green-200',
@@ -132,6 +137,7 @@ function OrderCard({
   const cfg = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending
   const isPending = order.status === 'pending'
   const isProcessing = order.status === 'processing'
+  const isConfirmed = order.status === 'confirmed'
   const isCancelled = order.status === 'cancelled'
 
   const fullAddress = [order.address, order.city, order.state, order.zipCode]
@@ -276,10 +282,10 @@ function OrderCard({
           {!isHospital && isPending && (
             <>
               <button
-                onClick={() => onUpdateStatus(order, 'processing')}
-                className="text-xs font-medium px-3 py-1.5 rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors"
+                onClick={() => onUpdateStatus(order, 'confirmed')}
+                className="text-xs font-medium px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
               >
-                Mark Processing
+                Confirm Order
               </button>
               <button
                 onClick={() => onUpdateStatus(order, 'cancelled')}
@@ -290,6 +296,28 @@ function OrderCard({
             </>
           )}
           {!isHospital && isProcessing && (
+            <>
+              <button
+                onClick={() => onUpdateStatus(order, 'confirmed')}
+                className="text-xs font-medium px-3 py-1.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors"
+              >
+                Confirm Order
+              </button>
+              <button
+                onClick={() => onUpdateStatus(order, 'completed')}
+                className="text-xs font-medium px-3 py-1.5 rounded-lg bg-green-500 text-white hover:bg-green-600 transition-colors"
+              >
+                Mark Completed
+              </button>
+              <button
+                onClick={() => onUpdateStatus(order, 'cancelled')}
+                className="text-xs font-medium px-3 py-1.5 rounded-lg border border-neutral-border text-neutral-gray hover:bg-neutral-light transition-colors"
+              >
+                Cancel
+              </button>
+            </>
+          )}
+          {!isHospital && isConfirmed && (
             <>
               <button
                 onClick={() => onUpdateStatus(order, 'completed')}
@@ -441,6 +469,7 @@ export default function OrdersPage() {
     all: orders.length,
     pending: orders.filter((o) => o.status === 'pending').length,
     processing: orders.filter((o) => o.status === 'processing').length,
+    confirmed: orders.filter((o) => o.status === 'confirmed').length,
     completed: orders.filter((o) => o.status === 'completed').length,
     cancelled: orders.filter((o) => o.status === 'cancelled').length,
   }), [orders])
@@ -473,7 +502,7 @@ export default function OrdersPage() {
       {/* Filter tabs */}
       {!isHospital && (
         <div className="flex flex-wrap gap-2">
-          {(['all', 'pending', 'processing', 'completed', 'cancelled'] as const).map((s) => (
+          {(['all', 'pending', 'processing', 'confirmed', 'completed', 'cancelled'] as const).map((s) => (
             <button
               key={s}
               onClick={() => setFilterStatus(s)}

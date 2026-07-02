@@ -558,7 +558,7 @@ export default function PharmacyStaffPage() {
             </Button>
             <Button
               type="button"
-              variant="danger"
+              variant="ghost"
               className="text-sm bg-red-600 hover:bg-red-700 text-white border-red-600 hover:border-red-700"
               onClick={handleDeleteStaff}
               disabled={submitting}

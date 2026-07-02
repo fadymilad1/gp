@@ -1,6 +1,6 @@
 import { API_BASE_URL, apiRequest, ApiResponse } from '@/lib/api'
 
-export type PharmacyOrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled'
+export type PharmacyOrderStatus = 'pending' | 'processing' | 'confirmed' | 'completed' | 'cancelled'
 
 export type PharmacyOrderItem = {
   id: string
