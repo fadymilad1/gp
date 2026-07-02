@@ -239,3 +239,102 @@ class ReviewSerializer(serializers.ModelSerializer):
             }
         return None
 
+
+from django.contrib.auth.password_validation import validate_password
+from core.models import User
+from .models import HospitalStaff
+
+class HospitalStaffSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source='user.name', required=True)
+    email = serializers.EmailField(source='user.email', required=True)
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    status = serializers.SerializerMethodField()
+    is_active = serializers.BooleanField(source='user.is_active', required=False, default=True)
+    created_at = serializers.DateTimeField(read_only=True)
+
+    class Meta:
+        model = HospitalStaff
+        fields = ['id', 'name', 'email', 'password', 'status', 'is_active', 'created_at']
+
+    def get_status(self, obj):
+        return 'Active' if obj.user.is_active else 'Disabled'
+
+    def validate_email(self, value):
+        email = value.strip().lower()
+        qs = User.objects.filter(email__iexact=email)
+        if self.instance:
+            qs = qs.exclude(id=self.instance.user.id)
+        if qs.exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        return email
+
+    def validate(self, attrs):
+        if not self.instance:
+            password = self.initial_data.get('password')
+            if not password:
+                raise serializers.ValidationError({"password": "Password is required for new staff members."})
+            validate_password(password)
+        else:
+            password = self.initial_data.get('password')
+            if password:
+                validate_password(password)
+        return attrs
+
+    def create(self, validated_data):
+        user_data = validated_data.pop('user', {})
+        email = user_data.get('email').strip().lower()
+        name = user_data.get('name')
+        is_active = user_data.get('is_active', True)
+        password = self.initial_data.get('password')
+
+        request_user = self.context['request'].user
+        
+        from core.models import WebsiteSetup
+        from hospitals.models import HospitalProfile
+        
+        website_setup, _ = WebsiteSetup.objects.get_or_create(
+            user=request_user,
+            defaults={'subdomain': email.split('@')[0]},
+        )
+        hospital, _ = HospitalProfile.objects.get_or_create(
+            website_setup=website_setup,
+            defaults={
+                'name': f"{request_user.name}'s Hospital",
+            },
+        )
+
+        user = User.objects.create_user(
+            username=email,
+            email=email,
+            password=password,
+            name=name,
+            business_type='hospital',
+            is_active=is_active
+        )
+
+        staff = HospitalStaff.objects.create(
+            user=user,
+            hospital=hospital
+        )
+        return staff
+
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop('user', {})
+        user = instance.user
+
+        if 'name' in user_data:
+            user.name = user_data['name']
+        if 'email' in user_data:
+            user.email = user_data['email'].strip().lower()
+            user.username = user.email
+        if 'is_active' in user_data:
+            user.is_active = user_data['is_active']
+        
+        password = self.initial_data.get('password')
+        if password:
+            user.set_password(password)
+
+        user.save()
+        return instance
+
+

@@ -12,6 +12,11 @@ type AuthUser = {
   name: string
   business_type?: string
   businessType?: string
+  is_staff?: boolean | string
+  pharmacy_name?: string
+  hospital_name?: string
+  hospital_logo?: string
+  pharmacy_logo?: string
 }
 
 type PersistAuthSessionPayload = {
@@ -93,7 +98,15 @@ export function persistAuthSession(payload: PersistAuthSessionPayload): void {
     localStorage.setItem('website_setup_id', payload.websiteSetupId)
   }
 
-  seedBusinessInfoName(payload.user?.name)
+  const user = payload.user
+  const isStaff = user.is_staff === true || user.is_staff === 'true'
+  if (isStaff) {
+    const businessType = user.businessType || user.business_type || 'hospital'
+    const staffBrandName = businessType === 'pharmacy' ? user.pharmacy_name : user.hospital_name
+    seedBusinessInfoName(staffBrandName)
+  } else {
+    seedBusinessInfoName(user.name)
+  }
 }
 
 export function clearAuthSession(): void {

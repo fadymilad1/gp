@@ -482,4 +482,66 @@ export const hospitalAdminApi = {
     if (!parsed.data) return { error: parsed.error, status: parsed.status, errorDetails: parsed.errorDetails };
     return { data: normalizeList<HospitalPhoto>(parsed.data), status: parsed.status };
   },
+
+  // ─── Staff ─────────────────────────────────────────────────────────────────
+
+  async listStaff(): Promise<ApiResponse<HospitalStaff[]>> {
+    const response = await fetch(`${API_BASE_URL}/hospital/admin/staff/`, {
+      method: 'GET',
+      headers: await authHeaders(),
+      cache: 'no-store',
+    });
+    const parsed = await parseJson<unknown>(response);
+    if (!parsed.data) return { error: parsed.error, status: parsed.status, errorDetails: parsed.errorDetails };
+    return { data: normalizeList<HospitalStaff>(parsed.data), status: parsed.status };
+  },
+
+  async createStaff(payload: HospitalStaffPayload): Promise<ApiResponse<HospitalStaff>> {
+    const response = await fetch(`${API_BASE_URL}/hospital/admin/staff/`, {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: JSON.stringify(payload),
+      cache: 'no-store',
+    });
+    return parseJson<HospitalStaff>(response);
+  },
+
+  async updateStaff(staffId: string, payload: Partial<HospitalStaffPayload>): Promise<ApiResponse<HospitalStaff>> {
+    const response = await fetch(`${API_BASE_URL}/hospital/admin/staff/${staffId}/`, {
+      method: 'PATCH',
+      headers: await authHeaders(),
+      body: JSON.stringify(payload),
+      cache: 'no-store',
+    });
+    return parseJson<HospitalStaff>(response);
+  },
+
+  async deleteStaff(staffId: string): Promise<ApiResponse<void>> {
+    const response = await fetch(`${API_BASE_URL}/hospital/admin/staff/${staffId}/`, {
+      method: 'DELETE',
+      headers: await authHeaders(),
+      cache: 'no-store',
+    });
+    if (response.status === 204) {
+      return { data: undefined, status: 204 };
+    }
+    return parseJson<void>(response);
+  },
 };
+
+export type HospitalStaff = {
+  id: string
+  name: string
+  email: string
+  status: string
+  is_active: boolean
+  created_at: string
+}
+
+export type HospitalStaffPayload = {
+  name: string
+  email: string
+  password?: string
+  is_active?: boolean
+}
+

@@ -12,6 +12,8 @@ class UserSerializer(serializers.ModelSerializer):
     pharmacy_id = serializers.SerializerMethodField()
     pharmacy_name = serializers.SerializerMethodField()
     pharmacy_logo = serializers.SerializerMethodField()
+    hospital_name = serializers.SerializerMethodField()
+    hospital_logo = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -27,11 +29,17 @@ class UserSerializer(serializers.ModelSerializer):
             'pharmacy_id',
             'pharmacy_name',
             'pharmacy_logo',
+            'hospital_name',
+            'hospital_logo',
         ]
         read_only_fields = ['id', 'created_at']
 
     def get_is_staff(self, obj):
-        return hasattr(obj, 'pharmacy_staff') and obj.pharmacy_staff is not None
+        if hasattr(obj, 'pharmacy_staff') and obj.pharmacy_staff is not None:
+            return True
+        if hasattr(obj, 'hospital_staff') and obj.hospital_staff is not None:
+            return True
+        return False
 
     def get_pharmacy_id(self, obj):
         if hasattr(obj, 'pharmacy_staff') and obj.pharmacy_staff:
@@ -93,6 +101,53 @@ class UserSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(pharmacy.logo.url)
             return pharmacy.logo.url
 
+        return None
+
+    def _resolve_hospital(self, obj):
+        if hasattr(obj, 'hospital_staff') and obj.hospital_staff:
+            return obj.hospital_staff.hospital
+        if hasattr(obj, 'hospital_profile') and obj.hospital_profile:
+            return obj.hospital_profile
+        return None
+
+    def get_hospital_name(self, obj):
+        hospital = self._resolve_hospital(obj)
+        if not hospital:
+            return None
+        # 1. Try to get from BusinessInfo (linked to WebsiteSetup)
+        try:
+            if hospital.website_setup and hasattr(hospital.website_setup, 'business_info'):
+                binfo = hospital.website_setup.business_info
+                if binfo and binfo.name:
+                    return binfo.name
+        except Exception:
+            pass
+        # 2. Fallback to HospitalProfile name
+        if hospital.name:
+            return hospital.name
+        return None
+
+    def get_hospital_logo(self, obj):
+        hospital = self._resolve_hospital(obj)
+        if not hospital:
+            return None
+        # 1. Try to get from BusinessInfo (linked to WebsiteSetup)
+        try:
+            if hospital.website_setup and hasattr(hospital.website_setup, 'business_info'):
+                binfo = hospital.website_setup.business_info
+                if binfo and binfo.logo:
+                    request = self.context.get('request')
+                    if request:
+                        return request.build_absolute_uri(binfo.logo.url)
+                    return binfo.logo.url
+        except Exception:
+            pass
+        # 2. Fallback to HospitalProfile logo
+        if hospital.logo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(hospital.logo.url)
+            return hospital.logo.url
         return None
 
 

@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     HospitalProfileViewSet, DepartmentViewSet, DoctorViewSet,
     DoctorScheduleViewSet, AppointmentAdminViewSet, PublicHospitalViewSet, BookingViewSet,
-    HospitalPhotoViewSet, ReviewAPIView, AdminReviewViewSet
+    HospitalPhotoViewSet, ReviewAPIView, AdminReviewViewSet, HospitalStaffViewSet
 )
 
 router = DefaultRouter()
@@ -14,6 +14,7 @@ router.register(r'admin/schedules', DoctorScheduleViewSet, basename='hospital-sc
 router.register(r'admin/appointments', AppointmentAdminViewSet, basename='hospital-appointment')
 router.register(r'admin/photos', HospitalPhotoViewSet, basename='hospital-photo')
 router.register(r'admin/reviews', AdminReviewViewSet, basename='hospital-admin-review')
+router.register(r'admin/staff', HospitalStaffViewSet, basename='hospital-staff')
 
 router.register(r'public', PublicHospitalViewSet, basename='hospital-public')
 router.register(r'booking', BookingViewSet, basename='hospital-booking')

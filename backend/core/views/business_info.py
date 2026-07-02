@@ -7,6 +7,14 @@ from core.serializers import BusinessInfoSerializer, BusinessInfoCreateUpdateSer
 from core.services.subscription import can_publish_hospital
 
 
+def _resolve_owner_user(user):
+    if hasattr(user, 'hospital_staff') and user.hospital_staff:
+        return user.hospital_staff.hospital.website_setup.user
+    if hasattr(user, 'pharmacy_staff') and user.pharmacy_staff:
+        return user.pharmacy_staff.pharmacy.website_setup.user
+    return user
+
+
 class BusinessInfoViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -16,7 +24,8 @@ class BusinessInfoViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
 
     def get_queryset(self):
-        return BusinessInfo.objects.select_related('website_setup').filter(website_setup__user=self.request.user)
+        owner = _resolve_owner_user(self.request.user)
+        return BusinessInfo.objects.select_related('website_setup').filter(website_setup__user=owner)
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
@@ -24,9 +33,10 @@ class BusinessInfoViewSet(viewsets.ModelViewSet):
         return BusinessInfoSerializer
 
     def get_object(self):
+        owner = _resolve_owner_user(self.request.user)
         website_setup, _ = WebsiteSetup.objects.get_or_create(
-            user=self.request.user,
-            defaults={'subdomain': self.request.user.email.split('@')[0]}
+            user=owner,
+            defaults={'subdomain': owner.email.split('@')[0] if owner.email else "setup"}
         )
         business_info, created = BusinessInfo.objects.get_or_create(website_setup=website_setup)
         return business_info
@@ -77,9 +87,10 @@ class BusinessInfoViewSet(viewsets.ModelViewSet):
                 website_setup.save(update_fields=['subdomain', 'updated_at'])
 
     def create(self, request, *args, **kwargs):
+        owner = _resolve_owner_user(request.user)
         website_setup, _ = WebsiteSetup.objects.get_or_create(
-            user=request.user,
-            defaults={'subdomain': request.user.email.split('@')[0]}
+            user=owner,
+            defaults={'subdomain': owner.email.split('@')[0] if owner.email else "setup"}
         )
         if BusinessInfo.objects.filter(website_setup=website_setup).exists():
             return Response(
@@ -124,9 +135,10 @@ class BusinessInfoViewSet(viewsets.ModelViewSet):
         Requires an active subscription OR a valid one-time payment.
         Returns HTTP 402 with code SUBSCRIPTION_REQUIRED if access is denied.
         """
+        owner = _resolve_owner_user(request.user)
         website_setup, _ = WebsiteSetup.objects.get_or_create(
-            user=request.user,
-            defaults={'subdomain': request.user.email.split('@')[0]}
+            user=owner,
+            defaults={'subdomain': owner.email.split('@')[0] if owner.email else "setup"}
         )
 
         if not can_publish_hospital(website_setup):

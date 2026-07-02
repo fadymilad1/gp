@@ -5,6 +5,7 @@ from .appointment import Appointment
 from .builder import Page, Block
 from .photo import HospitalPhoto
 from .review import Review
+from .staff import HospitalStaff
 
 __all__ = [
     'HospitalProfile',
@@ -15,5 +16,6 @@ __all__ = [
     'Page',
     'Block',
     'HospitalPhoto',
-    'Review'
+    'Review',
+    'HospitalStaff'
 ]

@@ -24,10 +24,17 @@ from .services.booking_engine import get_available_slots
 from .services.template_service import generate_default_hospital_template
 
 
+def _resolve_owner_user(user):
+    if hasattr(user, 'hospital_staff') and user.hospital_staff:
+        return user.hospital_staff.hospital.website_setup.user
+    return user
+
+
 def _get_or_create_website_setup(user):
+    owner = _resolve_owner_user(user)
     website_setup, _ = WebsiteSetup.objects.get_or_create(
-        user=user,
-        defaults={'subdomain': f"{user.email.split('@')[0]}-hospital" if user.email else "my-hospital"}
+        user=owner,
+        defaults={'subdomain': f"{owner.email.split('@')[0]}-hospital" if owner.email else "my-hospital"}
     )
     return website_setup
 
@@ -38,7 +45,8 @@ class HospitalProfileViewSet(viewsets.ModelViewSet):
     serializer_class = HospitalProfileSerializer
 
     def get_queryset(self):
-        return HospitalProfile.objects.filter(website_setup__user=self.request.user)
+        owner = _resolve_owner_user(self.request.user)
+        return HospitalProfile.objects.filter(website_setup__user=owner)
 
     @action(detail=False, methods=['get', 'post', 'patch', 'put'])
     def profile(self, request):
@@ -87,7 +95,8 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     serializer_class = DepartmentSerializer
 
     def get_queryset(self):
-        return Department.objects.filter(website_setup__user=self.request.user)
+        owner = _resolve_owner_user(self.request.user)
+        return Department.objects.filter(website_setup__user=owner)
 
     def perform_create(self, serializer):
         website_setup = _get_or_create_website_setup(self.request.user)
@@ -137,9 +146,10 @@ class DoctorViewSet(viewsets.ModelViewSet):
     parser_classes = [JSONParser, MultiPartParser, FormParser]
 
     def get_queryset(self):
+        owner = _resolve_owner_user(self.request.user)
         return (
             Doctor.objects
-            .filter(website_setup__user=self.request.user)
+            .filter(website_setup__user=owner)
             .select_related('department')
             .prefetch_related('schedules')
             .order_by('name')
@@ -189,7 +199,8 @@ class DoctorScheduleViewSet(viewsets.ModelViewSet):
     parser_classes = [JSONParser, MultiPartParser, FormParser]
 
     def get_queryset(self):
-        queryset = DoctorSchedule.objects.filter(doctor__website_setup__user=self.request.user)
+        owner = _resolve_owner_user(self.request.user)
+        queryset = DoctorSchedule.objects.filter(doctor__website_setup__user=owner)
         doctor_id = self.request.query_params.get('doctor')
         if doctor_id:
             queryset = queryset.filter(doctor_id=doctor_id)
@@ -197,7 +208,8 @@ class DoctorScheduleViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         doctor_id = self.request.data.get('doctor')
-        doctor = Doctor.objects.get(id=doctor_id, website_setup__user=self.request.user)
+        owner = _resolve_owner_user(self.request.user)
+        doctor = Doctor.objects.get(id=doctor_id, website_setup__user=owner)
         serializer.save(doctor=doctor)
 
 
@@ -206,9 +218,10 @@ class AppointmentAdminViewSet(viewsets.ModelViewSet):
     serializer_class = AppointmentAdminSerializer
 
     def get_queryset(self):
+        owner = _resolve_owner_user(self.request.user)
         queryset = (
             Appointment.objects
-            .filter(website_setup__user=self.request.user)
+            .filter(website_setup__user=owner)
             .select_related('doctor')
             .order_by('-start_datetime')
         )
@@ -229,8 +242,9 @@ class HospitalPhotoViewSet(viewsets.ModelViewSet):
     serializer_class = HospitalPhotoSerializer
 
     def get_queryset(self):
+        owner = _resolve_owner_user(self.request.user)
         return HospitalPhoto.objects.filter(
-            website_setup__user=self.request.user,
+            website_setup__user=owner,
             is_active=True
         ).order_by('display_order', 'created_at')
 
@@ -549,3 +563,38 @@ class ReviewAPIView(APIView):
             )
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+from hospitals.models import HospitalStaff
+from hospitals.serializers import HospitalStaffSerializer
+
+class HospitalStaffViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = HospitalStaffSerializer
+    pagination_class = None
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        # Check if the user is a staff member. Staff members should not manage staff!
+        if hasattr(request.user, 'hospital_staff') and request.user.hospital_staff:
+            self.permission_denied(request, message="Staff members cannot access staff management.")
+
+    def get_queryset(self):
+        request_user = self.request.user
+        
+        website_setup, _ = WebsiteSetup.objects.get_or_create(
+            user=request_user,
+            defaults={'subdomain': request_user.email.split('@')[0]},
+        )
+        hospital, _ = HospitalProfile.objects.get_or_create(
+            website_setup=website_setup,
+            defaults={
+                'name': f"{request_user.name}'s Hospital",
+            },
+        )
+
+        return HospitalStaff.objects.filter(hospital=hospital).select_related('user').order_by('-created_at')
+
+    def perform_destroy(self, instance):
+        instance.user.delete()
+

@@ -36,6 +36,7 @@ function HospitalDashboardContent() {
   const [loading, setLoading] = useState(true);
   const [localPublished, setLocalPublished] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isStaff, setIsStaff] = useState(false);
 
   // Modal state
   const [modalOpen, setModalOpen] = useState(false);
@@ -45,6 +46,18 @@ function HospitalDashboardContent() {
 
   const { canPublish, planType, isActive, loading: subLoading } = useSubscription();
   const { showToast } = useToast();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        try {
+          const user = JSON.parse(userData);
+          setIsStaff(!!(user.is_staff || user.is_staff === 'true'));
+        } catch (e) {}
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -179,7 +192,7 @@ function HospitalDashboardContent() {
           <div className="mt-1 flex items-center gap-2">
             <p className="text-neutral-gray">{profile?.name || 'Your hospital'} operations overview.</p>
             {/* Plan badge */}
-            {!subLoading && (
+            {!isStaff && !subLoading && (
               <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${PLAN_BADGE_CLASSES[planType]}`}>
                 {PLAN_LABELS[planType]}
                 {isActive ? ' · Active' : ' · Inactive'}
@@ -189,36 +202,38 @@ function HospitalDashboardContent() {
         </div>
 
         {/* Smart publish button */}
-        <div className="flex flex-wrap items-center gap-3">
-          <PublishGate
-            canPublish={canPublish}
-            label="Update Website Info"
-            onPublish={() => {
-              window.location.href = '/dashboard/business-info';
-            }}
-          />
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              if (publishedWebsiteUrl) {
-                window.open(publishedWebsiteUrl, '_blank', 'noopener,noreferrer');
-              } else {
-                showToast({
-                  type: 'info',
-                  title: 'Publish first',
-                  message: 'Publish your website to view the live site.',
-                });
-              }
-            }}
-          >
-            See My Website
-          </Button>
-        </div>
+        {!isStaff && (
+          <div className="flex flex-wrap items-center gap-3">
+            <PublishGate
+              canPublish={canPublish}
+              label="Update Website Info"
+              onPublish={() => {
+                window.location.href = '/dashboard/business-info';
+              }}
+            />
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                if (publishedWebsiteUrl) {
+                  window.open(publishedWebsiteUrl, '_blank', 'noopener,noreferrer');
+                } else {
+                  showToast({
+                    type: 'info',
+                    title: 'Publish first',
+                    message: 'Publish your website to view the live site.',
+                  });
+                }
+              }}
+            >
+              See My Website
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Subscription warning banner */}
-      {!subLoading && !isActive && (
+      {!isStaff && !subLoading && !isActive && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 flex items-start gap-3">
           <span className="text-amber-500 text-lg mt-0.5">⚠️</span>
           <div>

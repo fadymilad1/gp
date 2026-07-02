@@ -55,14 +55,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ userType, isOpen = true, onClo
   const loadBusinessInfo = useCallback((resolvedUserType: 'hospital' | 'pharmacy') => {
     let resolvedBrandName = 'Medify'
     let resolvedBrandLogo: string | null = null
+    let isUserStaff = false
 
     const userData = localStorage.getItem('user')
     if (userData) {
       try {
         const user = JSON.parse(userData) as any
+        isUserStaff = !!(user.is_staff || user.is_staff === 'true')
         if (resolvedUserType === 'pharmacy') {
           resolvedBrandName = user.pharmacy_name || user.name || 'Medify'
           resolvedBrandLogo = normalizeLogoUrl(user.pharmacy_logo || user.logo_url || user.logo)
+        } else if (resolvedUserType === 'hospital') {
+          resolvedBrandName = user.hospital_name || user.name || 'Medify'
+          resolvedBrandLogo = normalizeLogoUrl(user.hospital_logo || user.logo_url || user.logo)
         }
       } catch (e) {
         // ignore
@@ -73,7 +78,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ userType, isOpen = true, onClo
     if (businessInfoRaw) {
       try {
         const businessInfo = JSON.parse(businessInfoRaw) as any
-        if (businessInfo.name?.trim()) {
+        if (businessInfo.name?.trim() && !isUserStaff) {
           resolvedBrandName = businessInfo.name.trim()
         }
         const businessLogo = normalizeLogoUrl(businessInfo.logo || businessInfo.logo_url)
@@ -164,9 +169,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ userType, isOpen = true, onClo
   const dashboardHref = currentUserType === 'pharmacy' ? '/dashboard/pharmacy' : '/dashboard/hospital'
 
   const menuItems: SidebarItem[] = isStaff
-    ? [
-      { label: 'Orders', icon: <LuShoppingCart />, href: '/dashboard/orders' }
-    ]
+    ? (currentUserType === 'hospital'
+      ? [
+          { label: "Today's Patients", icon: <LuHome />, href: '/dashboard/hospital' },
+          { label: 'Patients', icon: <LuInfo />, href: '/dashboard/hospital/patients' },
+          { label: 'Appointments', icon: <LuCalendarCheck />, href: '/dashboard/hospital/appointments' },
+        ]
+      : [
+          { label: 'Orders', icon: <LuShoppingCart />, href: '/dashboard/orders' }
+        ])
     : [
       { label: 'Dashboard', icon: <LuHome />, href: dashboardHref },
       ...(currentUserType === 'hospital'
@@ -178,6 +189,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ userType, isOpen = true, onClo
           { label: 'Doctors', icon: <LuStethoscope />, href: '/dashboard/hospital/doctors' },
           { label: 'Appointments', icon: <LuCalendarCheck />, href: '/dashboard/hospital/appointments' },
           { label: 'Patients', icon: <LuInfo />, href: '/dashboard/hospital/patients' },
+          { label: 'Staff Management', icon: <LuUsers />, href: '/dashboard/hospital/staff' },
           { label: 'Reviews', icon: <LuMessageSquare />, href: '/dashboard/hospital/reviews' },
           { label: 'AI Assistant', icon: <LuSparkles />, href: '/dashboard/hospital/ai-assistant' },
         ]

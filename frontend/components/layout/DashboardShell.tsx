@@ -29,9 +29,22 @@ export function DashboardShell({
       const isStaff = user.is_staff || user.is_staff === 'true'
       
       if (isStaff) {
-        if (pathname !== '/dashboard/orders') {
-          router.replace('/dashboard/orders')
-          return
+        const businessType = user.businessType || user.business_type || 'hospital'
+        if (businessType === 'hospital') {
+          const allowedHospitalPages = [
+            '/dashboard/hospital',
+            '/dashboard/hospital/patients',
+            '/dashboard/hospital/appointments'
+          ]
+          if (!allowedHospitalPages.includes(pathname)) {
+            router.replace('/dashboard/hospital')
+            return
+          }
+        } else {
+          if (pathname !== '/dashboard/orders') {
+            router.replace('/dashboard/orders')
+            return
+          }
         }
       }
       setAuthorized(true)
